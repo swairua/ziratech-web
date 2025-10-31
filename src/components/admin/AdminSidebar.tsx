@@ -26,6 +26,7 @@ const navigation = [
   { name: 'Forms', href: '/admin/forms', icon: FileText },
   { name: 'Blog Management', href: '/admin/blog', icon: PenTool },
   { name: 'Web Pages', href: '/admin/pages', icon: Globe },
+  { name: 'Featured Products', href: '/admin/featured-products', icon: ShoppingBag },
   { name: 'Products', href: '/admin/products', icon: ShoppingBag },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },

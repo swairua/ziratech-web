@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { FeaturedProductsInit } from './FeaturedProductsInit';
 import {
   Users,
   FileText,
@@ -192,6 +193,9 @@ export const DashboardOverview = () => {
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">Welcome back, {welcomeName}! Here's what's happening with your business today.</p>
       </div>
+
+      {/* Featured Products Setup */}
+      <FeaturedProductsInit />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
