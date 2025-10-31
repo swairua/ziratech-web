@@ -194,6 +194,9 @@ export const DashboardOverview = () => {
         <p className="text-gray-600">Welcome back, {welcomeName}! Here's what's happening with your business today.</p>
       </div>
 
+      {/* Featured Products Setup */}
+      <FeaturedProductsInit />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
