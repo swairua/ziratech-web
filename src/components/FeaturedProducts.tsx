@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Package } from 'lucide-react';
+import { ArrowRight, Package, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Product = Tables<'products'>;
@@ -11,6 +12,7 @@ type Product = Tables<'products'>;
 const FeaturedProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
@@ -29,14 +31,23 @@ const FeaturedProducts = () => {
             details: error.details,
             hint: error.hint
           });
+
+          // Check if it's a "relation does not exist" error (table not created)
+          if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('products')) {
+            setError('Featured products table not initialized');
+          } else {
+            setError('Failed to load featured products');
+          }
         } else {
           setProducts(data || []);
+          setError(null);
         }
       } catch (err) {
         console.error('Unexpected error fetching featured products:', {
           message: err instanceof Error ? err.message : String(err),
           stack: err instanceof Error ? err.stack : undefined
         });
+        setError('An unexpected error occurred');
       } finally {
         setLoading(false);
       }
@@ -61,6 +72,12 @@ const FeaturedProducts = () => {
         </div>
       </section>
     );
+  }
+
+  if (error) {
+    // Silently fail if there's an error - don't show the section
+    console.warn('Featured Products Error:', error);
+    return null;
   }
 
   if (products.length === 0) {
