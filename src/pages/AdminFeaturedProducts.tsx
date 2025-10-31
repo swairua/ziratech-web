@@ -56,8 +56,20 @@ const AdminFeaturedProducts = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        toast.error('Failed to fetch products');
-        console.error(error);
+        console.error('Error fetching products:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+
+        if (error.code === 'PGRST116') {
+          toast.error('Products table does not exist. Please initialize it in the dashboard.');
+        } else if (error.code === '42P01') {
+          toast.error('Products table does not exist. Please initialize it in the dashboard.');
+        } else {
+          toast.error('Failed to fetch products: ' + error.message);
+        }
       } else {
         setProducts(data || []);
         const featured = new Set(
