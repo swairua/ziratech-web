@@ -125,7 +125,11 @@ export const DashboardOverview = () => {
       setRecentActivity(activity.slice(0, 5));
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error fetching dashboard data:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
     } finally {
       setIsLoading(false);
     }
