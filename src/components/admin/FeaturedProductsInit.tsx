@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Code, Copy, Check, AlertTriangle, ShoppingBag, RefreshCw } from 'lucide-react';
+import { Code, Copy, Check, AlertTriangle, ShoppingBag, RefreshCw, Zap } from 'lucide-react';
 import { checkIfProductsTableExists } from '@/lib/initializeFeaturedProducts';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const migrationSQL = `-- Create products table
