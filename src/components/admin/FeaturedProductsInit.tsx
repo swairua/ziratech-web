@@ -13,11 +13,15 @@ export const FeaturedProductsInit = () => {
   const [tableExists, setTableExists] = useState<boolean | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
 
   useEffect(() => {
     checkTableStatus();
-  }, []);
+    // Check every 3 seconds while setup is pending
+    if (tableExists === false) {
+      const interval = setInterval(checkTableStatus, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [tableExists]);
 
   const checkTableStatus = async () => {
     setIsChecking(true);
@@ -32,38 +36,20 @@ export const FeaturedProductsInit = () => {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(migrationSQL);
-    setIsCopied(true);
-    toast.success('SQL copied to clipboard!');
-    setTimeout(() => setIsCopied(false), 2000);
-  };
-
-  const downloadSQL = () => {
-    const element = document.createElement('a');
-    const file = new Blob([migrationSQL], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = 'init-featured-products.sql';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast.success('SQL file downloaded!');
-  };
-
-  const handleInitialize = async () => {
-    setIsInitializing(true);
-    const result = await initializeProductsTable();
-
-    if (result.success) {
-      toast.success(result.message);
-      // Check table status after a moment
-      setTimeout(() => {
-        checkTableStatus();
-      }, 1500);
-    } else {
-      toast.error(result.message);
+  const handleCopySQL = () => {
+    try {
+      copySQLToClipboard();
+      setIsCopied(true);
+      toast.success('SQL copied to clipboard!');
+      setTimeout(() => setIsCopied(false), 3000);
+    } catch (error) {
+      toast.error('Failed to copy SQL');
     }
-    setIsInitializing(false);
+  };
+
+  const handleOpenSupabase = () => {
+    openSupabaseSQL();
+    toast.success('Supabase SQL editor opened in new tab');
   };
 
   if (tableExists === null) {
