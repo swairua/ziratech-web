@@ -241,6 +241,15 @@ export const FeaturedProductsInit = () => {
               </>
             )}
           </Button>
+
+          <Button
+            onClick={() => window.open('https://app.supabase.com/project/vzznvztokpdtlzcvojar/sql/new', '_blank')}
+            variant="outline"
+            className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Open Supabase
+          </Button>
         </div>
 
         {/* Alternative: Manual SQL */}
