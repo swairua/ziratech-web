@@ -90,6 +90,22 @@ export const FeaturedProductsInit = () => {
     toast.success('SQL file downloaded!');
   };
 
+  const handleInitialize = async () => {
+    setIsInitializing(true);
+    const result = await initializeProductsTable();
+
+    if (result.success) {
+      toast.success(result.message);
+      // Check table status after a moment
+      setTimeout(() => {
+        checkTableStatus();
+      }, 1500);
+    } else {
+      toast.error(result.message);
+    }
+    setIsInitializing(false);
+  };
+
   if (tableExists === null) {
     return (
       <Card className="border-blue-200 bg-blue-50">
