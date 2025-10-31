@@ -23,12 +23,20 @@ const FeaturedProducts = () => {
           .limit(4);
 
         if (error) {
-          console.error('Error fetching featured products:', error);
+          console.error('Error fetching featured products:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          });
         } else {
           setProducts(data || []);
         }
       } catch (err) {
-        console.error('Error:', err);
+        console.error('Unexpected error fetching featured products:', {
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined
+        });
       } finally {
         setLoading(false);
       }
