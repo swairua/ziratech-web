@@ -48,10 +48,12 @@ export const initializeShowcaseWebsitesTable = async (): Promise<{ success: bool
     });
 
     if (error) {
-      console.error('Error invoking init function:', {
-        message: error.message || 'Unknown error',
-        error: error
-      });
+      console.error(
+        'Error invoking init function:',
+        JSON.stringify({
+          message: error.message || 'Unknown error'
+        }, null, 2)
+      );
       return {
         success: false,
         message: error.message || 'Failed to initialize showcase websites table. Please try manual setup.',
@@ -78,11 +80,13 @@ export const initializeShowcaseWebsitesTable = async (): Promise<{ success: bool
       message: data?.message || 'Could not create table. Please use manual setup.',
     };
   } catch (err) {
-    console.error('Unexpected error initializing showcase websites table:', {
-      message: err instanceof Error ? err.message : String(err),
-      stack: err instanceof Error ? err.stack : undefined,
-      error: err
-    });
+    console.error(
+      'Unexpected error initializing showcase websites table:',
+      JSON.stringify({
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      }, null, 2)
+    );
     return {
       success: false,
       message: err instanceof Error ? err.message : 'An unexpected error occurred. Please try manual setup.',
