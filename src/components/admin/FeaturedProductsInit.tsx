@@ -205,37 +205,29 @@ export const FeaturedProductsInit = () => {
 
         {/* Action Buttons */}
         <div className="flex gap-3 flex-wrap">
-          <Button 
-            onClick={copyToClipboard}
-            variant="outline"
-            className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+          <Button
+            onClick={handleInitialize}
+            disabled={isInitializing}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold"
           >
-            {isCopied ? (
+            {isInitializing ? (
               <>
-                <Check className="mr-2 h-4 w-4" />
-                Copied!
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Initializing...
               </>
             ) : (
               <>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy SQL
+                <Zap className="mr-2 h-4 w-4" />
+                Initialize Now
               </>
             )}
           </Button>
 
-          <Button 
-            onClick={downloadSQL}
+          <Button
+            onClick={checkTableStatus}
+            disabled={isChecking || isInitializing}
             variant="outline"
             className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-          >
-            <Code className="mr-2 h-4 w-4" />
-            Download SQL File
-          </Button>
-
-          <Button 
-            onClick={checkTableStatus}
-            disabled={isChecking}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white"
           >
             {isChecking ? (
               <>
@@ -245,11 +237,51 @@ export const FeaturedProductsInit = () => {
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Verify Setup
+                Check Status
               </>
             )}
           </Button>
         </div>
+
+        {/* Alternative: Manual SQL */}
+        <details className="mt-4 p-3 bg-white rounded border border-yellow-200">
+          <summary className="cursor-pointer font-medium text-yellow-900 hover:text-yellow-800">
+            💡 Manual Setup (Advanced)
+          </summary>
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-yellow-900">
+              If "Initialize Now" doesn't work, you can manually run the SQL:
+            </p>
+            <div className="flex gap-3 flex-wrap">
+              <Button
+                onClick={copyToClipboard}
+                variant="outline"
+                className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+              >
+                {isCopied ? (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy SQL
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={downloadSQL}
+                variant="outline"
+                className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+              >
+                <Code className="mr-2 h-4 w-4" />
+                Download SQL File
+              </Button>
+            </div>
+          </div>
+        </details>
 
         <p className="text-xs text-yellow-800 mt-4 p-3 bg-white rounded border border-yellow-200">
           💡 <strong>Tip:</strong> After running the SQL in Supabase, click "Verify Setup" above to check if the table was created successfully.
