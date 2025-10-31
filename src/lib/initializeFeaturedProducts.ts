@@ -94,3 +94,40 @@ export const checkIfProductsTableExists = async (): Promise<boolean> => {
     return false;
   }
 };
+
+export const initializeProductsTable = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    // Call the edge function to create the table
+    const { data, error } = await supabase.functions.invoke('init-featured-products', {
+      method: 'POST',
+    });
+
+    if (error) {
+      console.error('Error invoking init function:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to initialize products table',
+      };
+    }
+
+    if (data?.success) {
+      // Wait a moment for the table to be fully created
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return {
+        success: true,
+        message: 'Products table created successfully!',
+      };
+    }
+
+    return {
+      success: false,
+      message: data?.message || 'Failed to initialize products table',
+    };
+  } catch (err) {
+    console.error('Unexpected error initializing products table:', err);
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : 'An unexpected error occurred',
+    };
+  }
+};
