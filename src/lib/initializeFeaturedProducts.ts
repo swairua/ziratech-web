@@ -97,6 +97,15 @@ export const checkIfProductsTableExists = async (): Promise<boolean> => {
 
 export const initializeProductsTable = async (): Promise<{ success: boolean; message: string }> => {
   try {
+    // First check if table already exists
+    const tableExists = await checkIfProductsTableExists();
+    if (tableExists) {
+      return {
+        success: true,
+        message: 'Products table already exists!',
+      };
+    }
+
     // Call the edge function to create the table
     const { data, error } = await supabase.functions.invoke('init-featured-products', {
       method: 'POST',
@@ -106,28 +115,34 @@ export const initializeProductsTable = async (): Promise<{ success: boolean; mes
       console.error('Error invoking init function:', error);
       return {
         success: false,
-        message: error.message || 'Failed to initialize products table',
+        message: error.message || 'Failed to initialize products table. Please try manual setup.',
       };
     }
 
     if (data?.success) {
-      // Wait a moment for the table to be fully created
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return {
-        success: true,
-        message: 'Products table created successfully!',
-      };
+      // Wait for the table to be created
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Verify it was created
+      const exists = await checkIfProductsTableExists();
+      if (exists) {
+        return {
+          success: true,
+          message: 'Products table created successfully!',
+        };
+      }
     }
 
+    // If we get here, the initialization had an issue
     return {
       success: false,
-      message: data?.message || 'Failed to initialize products table',
+      message: data?.message || 'Could not create table. Please use manual setup.',
     };
   } catch (err) {
     console.error('Unexpected error initializing products table:', err);
     return {
       success: false,
-      message: err instanceof Error ? err.message : 'An unexpected error occurred',
+      message: err instanceof Error ? err.message : 'An unexpected error occurred. Please try manual setup.',
     };
   }
 };
