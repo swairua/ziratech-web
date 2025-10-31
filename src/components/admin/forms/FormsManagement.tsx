@@ -65,11 +65,13 @@ export const FormsManagement = () => {
 
       setFormStats(stats);
     } catch (error) {
-      console.error('Error fetching form stats:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error
-      });
+      console.error(
+        'Error fetching form stats:',
+        JSON.stringify({
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        }, null, 2)
+      );
     }
   };
 
