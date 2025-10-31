@@ -61,7 +61,11 @@ CREATE POLICY "Allow admins to manage products" ON products
       sql: migrationSQL
     };
   } catch (error) {
-    console.error('Error checking products table:', error);
+    console.error('Error checking products table:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      error: error
+    });
     return { 
       success: false, 
       message: 'Error initializing products table',
