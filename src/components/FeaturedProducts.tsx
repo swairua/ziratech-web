@@ -25,12 +25,15 @@ const FeaturedProducts = () => {
           .limit(4);
 
         if (error) {
-          console.error('Error fetching featured products:', {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint
-          });
+          console.error(
+            'Error fetching featured products:',
+            JSON.stringify({
+              message: error.message,
+              code: error.code,
+              details: error.details,
+              hint: error.hint
+            }, null, 2)
+          );
 
           // Check if it's a "relation does not exist" error (table not created)
           if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('products')) {
@@ -43,10 +46,13 @@ const FeaturedProducts = () => {
           setError(null);
         }
       } catch (err) {
-        console.error('Unexpected error fetching featured products:', {
-          message: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined
-        });
+        console.error(
+          'Unexpected error fetching featured products:',
+          JSON.stringify({
+            message: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined
+          }, null, 2)
+        );
         setError('An unexpected error occurred');
       } finally {
         setLoading(false);

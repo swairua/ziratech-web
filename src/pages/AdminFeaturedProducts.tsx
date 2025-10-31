@@ -76,15 +76,16 @@ const AdminFeaturedProducts = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        const errorDetails = {
-          message: error.message,
-          code: error.code,
-          status: error.status,
-          details: error.details,
-          hint: error.hint,
-          fullError: JSON.stringify(error)
-        };
-        console.error('Error fetching products:', errorDetails);
+        console.error(
+          'Error fetching products:',
+          JSON.stringify({
+            message: error.message,
+            code: error.code,
+            status: error.status,
+            details: error.details,
+            hint: error.hint
+          }, null, 2)
+        );
 
         // Check for table not found errors
         if (error.code === 'PGRST116' ||
@@ -107,10 +108,13 @@ const AdminFeaturedProducts = () => {
         setFeaturedProducts(featured);
       }
     } catch (err) {
-      console.error('Unexpected error fetching products:', {
-        message: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined
-      });
+      console.error(
+        'Unexpected error fetching products:',
+        JSON.stringify({
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined
+        }, null, 2)
+      );
       toast.error('An unexpected error occurred while fetching products');
     } finally {
       setIsLoading(false);

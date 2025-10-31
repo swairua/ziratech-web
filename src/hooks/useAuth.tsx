@@ -39,7 +39,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('Error signing out:', error);
+      console.error(
+        'Error signing out:',
+        JSON.stringify({
+          message: error.message,
+          code: error.code || 'UNKNOWN',
+          details: error.details,
+          hint: error.hint
+        }, null, 2)
+      );
     }
   };
 

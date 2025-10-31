@@ -61,7 +61,13 @@ CREATE POLICY "Allow admins to manage products" ON products
       sql: migrationSQL
     };
   } catch (error) {
-    console.error('Error checking products table:', error);
+    console.error(
+      'Error checking products table:',
+      JSON.stringify({
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      }, null, 2)
+    );
     return { 
       success: false, 
       message: 'Error initializing products table',
@@ -112,7 +118,12 @@ export const initializeProductsTable = async (): Promise<{ success: boolean; mes
     });
 
     if (error) {
-      console.error('Error invoking init function:', error);
+      console.error(
+        'Error invoking init function:',
+        JSON.stringify({
+          message: error.message || 'Unknown error'
+        }, null, 2)
+      );
       return {
         success: false,
         message: error.message || 'Failed to initialize products table. Please try manual setup.',
@@ -139,7 +150,13 @@ export const initializeProductsTable = async (): Promise<{ success: boolean; mes
       message: data?.message || 'Could not create table. Please use manual setup.',
     };
   } catch (err) {
-    console.error('Unexpected error initializing products table:', err);
+    console.error(
+      'Unexpected error initializing products table:',
+      JSON.stringify({
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      }, null, 2)
+    );
     return {
       success: false,
       message: err instanceof Error ? err.message : 'An unexpected error occurred. Please try manual setup.',

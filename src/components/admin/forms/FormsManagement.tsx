@@ -33,7 +33,12 @@ export const FormsManagement = () => {
         .select('form_type, status');
 
       if (error) {
-        console.error('Error fetching form stats:', error);
+        console.error('Error fetching form stats:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         return;
       }
 
@@ -60,7 +65,13 @@ export const FormsManagement = () => {
 
       setFormStats(stats);
     } catch (error) {
-      console.error('Error fetching form stats:', error);
+      console.error(
+        'Error fetching form stats:',
+        JSON.stringify({
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        }, null, 2)
+      );
     }
   };
 
