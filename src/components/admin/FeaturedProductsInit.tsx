@@ -3,9 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Code, Copy, Check, AlertTriangle, ShoppingBag, RefreshCw, Zap, ExternalLink } from 'lucide-react';
-import { checkIfProductsTableExists, initializeProductsTable } from '@/lib/initializeFeaturedProducts';
-import { supabase } from '@/integrations/supabase/client';
+import { Code, Copy, Check, AlertTriangle, ShoppingBag, RefreshCw, ExternalLink } from 'lucide-react';
+import { checkIfProductsTableExists } from '@/lib/initializeFeaturedProducts';
+import { PRODUCTS_TABLE_SQL, openSupabaseSQL, copySQLToClipboard } from '@/lib/createProductsTable';
 import { toast } from 'sonner';
 
 const migrationSQL = `-- Create products table
