@@ -48,7 +48,12 @@ export const UserProfile = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
+        console.error('Error fetching profile:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         toast({
           variant: "destructive",
           title: "Error",
@@ -58,7 +63,11 @@ export const UserProfile = () => {
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching profile:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
     } finally {
       setIsLoading(false);
     }
@@ -73,12 +82,21 @@ export const UserProfile = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user role:', error);
+        console.error('Error fetching user role:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
       } else if (data) {
         setUserRole(data.role);
       }
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      console.error('Error fetching user role:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
     }
   };
 

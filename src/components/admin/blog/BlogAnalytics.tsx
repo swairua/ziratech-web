@@ -51,7 +51,11 @@ export const BlogAnalytics = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching blog stats:', error);
+      console.error('Error fetching blog stats:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
     } finally {
       setLoading(false);
     }
