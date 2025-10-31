@@ -53,6 +53,7 @@ export const FeaturedProductsInit = () => {
   const [tableExists, setTableExists] = useState<boolean | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   useEffect(() => {
     checkTableStatus();
