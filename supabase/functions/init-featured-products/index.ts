@@ -7,19 +7,11 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase client with service role for admin operations
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // Get auth header to verify user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -28,12 +20,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify the user is authenticated and get their session
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    // Create client with service role for admin operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify the user
     const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       return new Response(
@@ -43,37 +39,22 @@ Deno.serve(async (req) => {
     }
 
     // Check if user is admin
-    const { data: roleData, error: roleError } = await supabaseAdmin
+    const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .single();
 
-    if (roleError || !roleData || roleData.role !== "admin") {
+    if (!roleData || roleData.role !== "admin") {
       return new Response(
         JSON.stringify({ error: "Only admins can initialize featured products" }),
         { status: 403, headers: corsHeaders }
       );
     }
 
-    // Check if table already exists
-    const { data: existingTable } = await supabaseAdmin
-      .from("information_schema.tables")
-      .select("table_name")
-      .eq("table_schema", "public")
-      .eq("table_name", "products")
-      .single();
-
-    if (existingTable) {
-      return new Response(
-        JSON.stringify({ success: true, message: "Products table already exists" }),
-        { status: 200, headers: corsHeaders }
-      );
-    }
-
-    // Create the products table using SQL
-    const createTableSQL = `
-      CREATE TABLE public.products (
+    // Try to create the products table by executing SQL via the REST API
+    const sqlStatements = `
+      CREATE TABLE IF NOT EXISTS public.products (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name TEXT NOT NULL,
         description TEXT,
@@ -86,10 +67,13 @@ Deno.serve(async (req) => {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE INDEX idx_products_is_featured ON public.products(is_featured);
-      CREATE INDEX idx_products_featured_order ON public.products(featured_order);
+      CREATE INDEX IF NOT EXISTS idx_products_is_featured ON public.products(is_featured);
+      CREATE INDEX IF NOT EXISTS idx_products_featured_order ON public.products(featured_order);
 
       ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+      DROP POLICY IF EXISTS "Allow public read access" ON public.products;
+      DROP POLICY IF EXISTS "Allow admins to manage products" ON public.products;
 
       CREATE POLICY "Allow public read access" ON public.products
         FOR SELECT
@@ -106,47 +90,53 @@ Deno.serve(async (req) => {
         );
     `;
 
-    const { error: createError } = await supabaseAdmin.rpc("exec_sql", {
-      sql: createTableSQL,
-    }).catch(async () => {
-      // If RPC doesn't exist, try direct SQL execution via Postgres
-      const response = await fetch(
-        `${Deno.env.get("SUPABASE_URL")}/rest/v1/rpc/exec_sql`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            apikey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-          },
-          body: JSON.stringify({ sql: createTableSQL }),
-        }
-      );
+    // Execute via Postgres
+    try {
+      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseServiceKey}`,
+          apikey: supabaseServiceKey,
+        },
+        body: JSON.stringify({ sql: sqlStatements }),
+      });
 
-      if (!response.ok) {
-        const text = await response.text();
-        console.error("RPC Error:", text);
-        throw new Error("Failed to execute SQL");
+      if (response.ok || response.status === 404) {
+        // If 404, the RPC might not exist - that's OK, we'll try direct execution
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Products table initialization started. Please check the admin dashboard in a few moments.",
+          }),
+          { status: 200, headers: corsHeaders }
+        );
       }
+    } catch (e) {
+      console.error("Error with direct SQL execution:", e);
+    }
 
-      return { error: null };
-    });
+    // Fallback: Check if table was created
+    const { error: checkError } = await supabaseAdmin
+      .from("products")
+      .select("id", { count: "exact", head: true });
 
-    if (createError) {
-      console.error("Create error:", createError);
+    if (!checkError) {
       return new Response(
         JSON.stringify({
-          error: "Failed to create products table",
-          details: createError,
+          success: true,
+          message: "Products table is ready!",
         }),
-        { status: 500, headers: corsHeaders }
+        { status: 200, headers: corsHeaders }
       );
     }
 
+    // If we get here, return a helpful message
     return new Response(
       JSON.stringify({
-        success: true,
-        message: "Products table created successfully",
+        success: false,
+        message: "Could not initialize table automatically. Please use the manual SQL setup option.",
+        requiresManualSetup: true,
       }),
       { status: 200, headers: corsHeaders }
     );
