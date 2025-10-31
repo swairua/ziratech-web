@@ -56,19 +56,28 @@ const AdminFeaturedProducts = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching products:', {
+        const errorDetails = {
           message: error.message,
           code: error.code,
+          status: error.status,
           details: error.details,
-          hint: error.hint
-        });
+          hint: error.hint,
+          fullError: JSON.stringify(error)
+        };
+        console.error('Error fetching products:', errorDetails);
 
-        if (error.code === 'PGRST116') {
-          toast.error('Products table does not exist. Please initialize it in the dashboard.');
+        // Check for table not found errors
+        if (error.code === 'PGRST116' ||
+            error.message?.includes('relation') ||
+            error.message?.includes('does not exist') ||
+            error.message?.includes('products')) {
+          toast.error('Products table not initialized. Go back to Dashboard and click "Initialize Now".');
         } else if (error.code === '42P01') {
           toast.error('Products table does not exist. Please initialize it in the dashboard.');
+        } else if (error.code === 'PGRST301') {
+          toast.error('Permission denied. You may not have admin access.');
         } else {
-          toast.error('Failed to fetch products: ' + error.message);
+          toast.error('Failed to fetch products: ' + (error.message || 'Unknown error'));
         }
       } else {
         setProducts(data || []);
@@ -77,6 +86,12 @@ const AdminFeaturedProducts = () => {
         );
         setFeaturedProducts(featured);
       }
+    } catch (err) {
+      console.error('Unexpected error fetching products:', {
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      });
+      toast.error('An unexpected error occurred while fetching products');
     } finally {
       setIsLoading(false);
     }

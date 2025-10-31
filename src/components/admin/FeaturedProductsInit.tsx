@@ -3,61 +3,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Code, Copy, Check, AlertTriangle, ShoppingBag, RefreshCw, Zap, ExternalLink } from 'lucide-react';
-import { checkIfProductsTableExists, initializeProductsTable } from '@/lib/initializeFeaturedProducts';
-import { supabase } from '@/integrations/supabase/client';
+import { Code, Copy, Check, AlertTriangle, ShoppingBag, RefreshCw, ExternalLink } from 'lucide-react';
+import { checkIfProductsTableExists } from '@/lib/initializeFeaturedProducts';
+import { PRODUCTS_TABLE_SQL, openSupabaseSQL, copySQLToClipboard } from '@/lib/createProductsTable';
 import { toast } from 'sonner';
 
-const migrationSQL = `-- Create products table
-CREATE TABLE IF NOT EXISTS products (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  description TEXT,
-  price DECIMAL(10, 2),
-  image_url TEXT,
-  category TEXT,
-  is_featured BOOLEAN DEFAULT FALSE,
-  featured_order INTEGER,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create index on is_featured for faster queries
-CREATE INDEX IF NOT EXISTS idx_products_is_featured ON products(is_featured);
-CREATE INDEX IF NOT EXISTS idx_products_featured_order ON products(featured_order);
-
--- Enable Row Level Security
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies if they exist
-DROP POLICY IF EXISTS "Allow public read access" ON products;
-DROP POLICY IF EXISTS "Allow admins to manage products" ON products;
-
--- Create policy to allow public read access
-CREATE POLICY "Allow public read access" ON products
-  FOR SELECT
-  USING (true);
-
--- Create policy to allow authenticated users (admins) to manage products
-CREATE POLICY "Allow admins to manage products" ON products
-  FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_roles
-      WHERE user_roles.user_id = auth.uid()
-      AND user_roles.role = 'admin'
-    )
-  );`;
 
 export const FeaturedProductsInit = () => {
   const [tableExists, setTableExists] = useState<boolean | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
 
   useEffect(() => {
     checkTableStatus();
-  }, []);
+    // Check every 3 seconds while setup is pending
+    if (tableExists === false) {
+      const interval = setInterval(checkTableStatus, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [tableExists]);
 
   const checkTableStatus = async () => {
     setIsChecking(true);
@@ -72,38 +36,20 @@ export const FeaturedProductsInit = () => {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(migrationSQL);
-    setIsCopied(true);
-    toast.success('SQL copied to clipboard!');
-    setTimeout(() => setIsCopied(false), 2000);
-  };
-
-  const downloadSQL = () => {
-    const element = document.createElement('a');
-    const file = new Blob([migrationSQL], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = 'init-featured-products.sql';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast.success('SQL file downloaded!');
-  };
-
-  const handleInitialize = async () => {
-    setIsInitializing(true);
-    const result = await initializeProductsTable();
-
-    if (result.success) {
-      toast.success(result.message);
-      // Check table status after a moment
-      setTimeout(() => {
-        checkTableStatus();
-      }, 1500);
-    } else {
-      toast.error(result.message);
+  const handleCopySQL = () => {
+    try {
+      copySQLToClipboard();
+      setIsCopied(true);
+      toast.success('SQL copied to clipboard!');
+      setTimeout(() => setIsCopied(false), 3000);
+    } catch (error) {
+      toast.error('Failed to copy SQL');
     }
-    setIsInitializing(false);
+  };
+
+  const handleOpenSupabase = () => {
+    openSupabaseSQL();
+    toast.success('Supabase SQL editor opened in new tab');
   };
 
   if (tableExists === null) {
@@ -199,33 +145,41 @@ export const FeaturedProductsInit = () => {
         </div>
 
         {/* SQL Code Block */}
-        <div className="bg-gray-900 rounded-lg p-4 text-white text-xs font-mono overflow-x-auto">
-          <pre className="whitespace-pre-wrap break-words">{migrationSQL}</pre>
+        <div className="bg-gray-900 rounded-lg p-4 text-white text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto">
+          <pre className="whitespace-pre-wrap break-words">{PRODUCTS_TABLE_SQL}</pre>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Simplified */}
         <div className="flex gap-3 flex-wrap">
           <Button
-            onClick={handleInitialize}
-            disabled={isInitializing}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold"
+            onClick={handleOpenSupabase}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold flex-1 sm:flex-none"
           >
-            {isInitializing ? (
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Open Supabase SQL Editor
+          </Button>
+
+          <Button
+            onClick={handleCopySQL}
+            variant="outline"
+            className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+          >
+            {isCopied ? (
               <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Initializing...
+                <Check className="mr-2 h-4 w-4" />
+                Copied!
               </>
             ) : (
               <>
-                <Zap className="mr-2 h-4 w-4" />
-                Initialize Now
+                <Copy className="mr-2 h-4 w-4" />
+                Copy SQL
               </>
             )}
           </Button>
 
           <Button
             onClick={checkTableStatus}
-            disabled={isChecking || isInitializing}
+            disabled={isChecking}
             variant="outline"
             className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
           >
@@ -237,60 +191,11 @@ export const FeaturedProductsInit = () => {
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Check Status
+                Verify Setup
               </>
             )}
           </Button>
-
-          <Button
-            onClick={() => window.open('https://app.supabase.com/project/vzznvztokpdtlzcvojar/sql/new', '_blank')}
-            variant="outline"
-            className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Open Supabase
-          </Button>
         </div>
-
-        {/* Alternative: Manual SQL */}
-        <details className="mt-4 p-3 bg-white rounded border border-yellow-200">
-          <summary className="cursor-pointer font-medium text-yellow-900 hover:text-yellow-800">
-            💡 Manual Setup (Advanced)
-          </summary>
-          <div className="mt-3 space-y-3">
-            <p className="text-sm text-yellow-900">
-              If "Initialize Now" doesn't work, you can manually run the SQL:
-            </p>
-            <div className="flex gap-3 flex-wrap">
-              <Button
-                onClick={copyToClipboard}
-                variant="outline"
-                className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-              >
-                {isCopied ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy SQL
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={downloadSQL}
-                variant="outline"
-                className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-              >
-                <Code className="mr-2 h-4 w-4" />
-                Download SQL File
-              </Button>
-            </div>
-          </div>
-        </details>
 
         <p className="text-xs text-yellow-800 mt-4 p-3 bg-white rounded border border-yellow-200">
           💡 <strong>Tip:</strong> After running the SQL in Supabase, click "Verify Setup" above to check if the table was created successfully.
