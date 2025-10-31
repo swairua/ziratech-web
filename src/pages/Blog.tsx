@@ -99,7 +99,11 @@ const Blog = () => {
       setPosts(formattedPosts);
       setTotalPages(Math.ceil((count || 0) / postsPerPage));
     } catch (error) {
-      console.error('Error fetching blog posts:', error);
+      console.error('Error fetching blog posts:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
       toast({
         variant: "destructive",
         title: "Error",
