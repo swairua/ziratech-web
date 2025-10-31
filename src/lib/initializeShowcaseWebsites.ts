@@ -20,11 +20,13 @@ export const checkIfShowcaseWebsitesTableExists = async (): Promise<boolean> => 
 
     return !error;
   } catch (err) {
-    console.error('Unexpected error checking showcase websites table:', {
-      message: err instanceof Error ? err.message : String(err),
-      stack: err instanceof Error ? err.stack : undefined,
-      error: err
-    });
+    console.error(
+      'Unexpected error checking showcase websites table:',
+      JSON.stringify({
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      }, null, 2)
+    );
     return false;
   }
 };
