@@ -8,11 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Star, Plus, Trash2 } from 'lucide-react';
+import { Star, Plus, Trash2, AlertTriangle, RefreshCw, Database } from 'lucide-react';
 import { toast } from 'sonner';
+import { checkIfProductsTableExists, initializeProductsTable } from '@/lib/initializeFeaturedProducts';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Product = Tables<'products'>;
@@ -25,6 +27,8 @@ const AdminFeaturedProducts = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [tableExists, setTableExists] = useState<boolean | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -42,9 +46,25 @@ const AdminFeaturedProducts = () => {
 
   useEffect(() => {
     if (user) {
-      fetchProducts();
+      checkTableAndFetchProducts();
     }
   }, [user]);
+
+  const checkTableAndFetchProducts = async () => {
+    try {
+      setIsLoading(true);
+      const exists = await checkIfProductsTableExists();
+      setTableExists(exists);
+      if (exists) {
+        await fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error checking table:', error);
+      setTableExists(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -237,6 +257,26 @@ const AdminFeaturedProducts = () => {
     setShowForm(false);
   };
 
+  const handleCreateTable = async () => {
+    try {
+      setIsInitializing(true);
+      const result = await initializeProductsTable();
+
+      if (result.success) {
+        toast.success('Products table created successfully!');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await checkTableAndFetchProducts();
+      } else {
+        toast.error(result.message || 'Failed to create table. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating table:', error);
+      toast.error('An error occurred while creating the table');
+    } finally {
+      setIsInitializing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -250,6 +290,87 @@ const AdminFeaturedProducts = () => {
 
   if (!user) {
     return null;
+  }
+
+  if (tableExists === false) {
+    return (
+      <AdminLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Featured Products</h1>
+            <p className="text-gray-600 mt-1">
+              Manage up to 4 featured products displayed on the home page
+            </p>
+          </div>
+
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                  <div>
+                    <CardTitle>Products Table Not Initialized</CardTitle>
+                    <CardDescription>Create the products database table to get started</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <Alert className="bg-white border-yellow-300">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-900">
+                  The products table needs to be created in your database before you can manage featured products.
+                </AlertDescription>
+              </Alert>
+
+              <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                <h4 className="font-semibold text-yellow-900 mb-3">What happens next?</h4>
+                <ul className="list-disc list-inside space-y-2 text-sm text-yellow-900">
+                  <li>We'll create a products table in your Supabase database</li>
+                  <li>Configure proper access permissions and indexes</li>
+                  <li>You'll be able to add and manage featured products</li>
+                </ul>
+              </div>
+
+              <div className="flex gap-3 flex-wrap">
+                <Button
+                  onClick={handleCreateTable}
+                  disabled={isInitializing}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold"
+                >
+                  {isInitializing ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Table...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="mr-2 h-4 w-4" />
+                      Create Table
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={() => checkTableAndFetchProducts()}
+                  disabled={isInitializing}
+                  variant="outline"
+                  className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Verify Setup
+                </Button>
+              </div>
+
+              <p className="text-xs text-yellow-800 p-3 bg-white rounded border border-yellow-200">
+                💡 <strong>Tip:</strong> Click "Create Table" to automatically set up your products database. This typically takes a few seconds.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    );
   }
 
   const featuredCount = featuredProducts.size;
