@@ -15,6 +15,7 @@ import AdminForms from "./pages/AdminForms";
 import AdminBlog from "./pages/AdminBlog";
 import AdminPages from "./pages/AdminPages";
 import AdminProducts from "./pages/AdminProducts";
+import AdminFeaturedProducts from "./pages/AdminFeaturedProducts";
 import AdminOrders from "./pages/AdminOrders";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminReports from "./pages/AdminReports";
