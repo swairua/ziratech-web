@@ -145,33 +145,41 @@ export const FeaturedProductsInit = () => {
         </div>
 
         {/* SQL Code Block */}
-        <div className="bg-gray-900 rounded-lg p-4 text-white text-xs font-mono overflow-x-auto">
-          <pre className="whitespace-pre-wrap break-words">{migrationSQL}</pre>
+        <div className="bg-gray-900 rounded-lg p-4 text-white text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto">
+          <pre className="whitespace-pre-wrap break-words">{PRODUCTS_TABLE_SQL}</pre>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Simplified */}
         <div className="flex gap-3 flex-wrap">
           <Button
-            onClick={handleInitialize}
-            disabled={isInitializing}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold"
+            onClick={handleOpenSupabase}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold flex-1 sm:flex-none"
           >
-            {isInitializing ? (
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Open Supabase SQL Editor
+          </Button>
+
+          <Button
+            onClick={handleCopySQL}
+            variant="outline"
+            className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+          >
+            {isCopied ? (
               <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Initializing...
+                <Check className="mr-2 h-4 w-4" />
+                Copied!
               </>
             ) : (
               <>
-                <Zap className="mr-2 h-4 w-4" />
-                Initialize Now
+                <Copy className="mr-2 h-4 w-4" />
+                Copy SQL
               </>
             )}
           </Button>
 
           <Button
             onClick={checkTableStatus}
-            disabled={isChecking || isInitializing}
+            disabled={isChecking}
             variant="outline"
             className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
           >
@@ -183,60 +191,11 @@ export const FeaturedProductsInit = () => {
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Check Status
+                Verify Setup
               </>
             )}
           </Button>
-
-          <Button
-            onClick={() => window.open('https://app.supabase.com/project/vzznvztokpdtlzcvojar/sql/new', '_blank')}
-            variant="outline"
-            className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Open Supabase
-          </Button>
         </div>
-
-        {/* Alternative: Manual SQL */}
-        <details className="mt-4 p-3 bg-white rounded border border-yellow-200">
-          <summary className="cursor-pointer font-medium text-yellow-900 hover:text-yellow-800">
-            💡 Manual Setup (Advanced)
-          </summary>
-          <div className="mt-3 space-y-3">
-            <p className="text-sm text-yellow-900">
-              If "Initialize Now" doesn't work, you can manually run the SQL:
-            </p>
-            <div className="flex gap-3 flex-wrap">
-              <Button
-                onClick={copyToClipboard}
-                variant="outline"
-                className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-              >
-                {isCopied ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy SQL
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={downloadSQL}
-                variant="outline"
-                className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-              >
-                <Code className="mr-2 h-4 w-4" />
-                Download SQL File
-              </Button>
-            </div>
-          </div>
-        </details>
 
         <p className="text-xs text-yellow-800 mt-4 p-3 bg-white rounded border border-yellow-200">
           💡 <strong>Tip:</strong> After running the SQL in Supabase, click "Verify Setup" above to check if the table was created successfully.
