@@ -76,8 +76,21 @@ export const checkIfProductsTableExists = async (): Promise<boolean> => {
       .from('products')
       .select('id', { count: 'exact', head: true });
 
+    if (error) {
+      console.debug('Products table check error:', {
+        code: error.code,
+        message: error.message
+      });
+    }
+
+    // If error code is PGRST116 or message contains "relation" or "products", table doesn't exist
+    if (error?.code === 'PGRST116' || error?.message?.includes('relation') || error?.message?.includes('products')) {
+      return false;
+    }
+
     return !error;
-  } catch {
+  } catch (err) {
+    console.error('Unexpected error checking products table:', err);
     return false;
   }
 };
