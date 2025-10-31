@@ -48,12 +48,15 @@ export const UserProfile = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
+        console.error(
+          'Error fetching profile:',
+          JSON.stringify({
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          }, null, 2)
+        );
         toast({
           variant: "destructive",
           title: "Error",
@@ -63,11 +66,13 @@ export const UserProfile = () => {
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error fetching profile:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error
-      });
+      console.error(
+        'Error fetching profile:',
+        JSON.stringify({
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        }, null, 2)
+      );
     } finally {
       setIsLoading(false);
     }

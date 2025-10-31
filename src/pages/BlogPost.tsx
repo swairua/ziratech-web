@@ -114,11 +114,13 @@ const BlogPost = () => {
       }
 
     } catch (error) {
-      console.error('Error fetching blog post:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error
-      });
+      console.error(
+        'Error fetching blog post:',
+        JSON.stringify({
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        }, null, 2)
+      );
       toast({
         variant: "destructive",
         title: "Error",
