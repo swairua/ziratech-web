@@ -90,7 +90,7 @@ const AdminProducts = () => {
           hint: error.hint,
           fullError: JSON.stringify(error)
         };
-        console.error('Error fetching showcase websites:', errorDetails);
+        console.error('Error fetching products:', errorDetails);
 
         if (error.code === 'PGRST116' ||
             error.message?.includes('relation') ||
@@ -108,7 +108,7 @@ const AdminProducts = () => {
         setWebsites(data || []);
       }
     } catch (err) {
-      console.error('Unexpected error fetching showcase websites:', {
+      console.error('Unexpected error fetching products:', {
         message: err instanceof Error ? err.message : String(err),
         stack: err instanceof Error ? err.stack : undefined
       });
