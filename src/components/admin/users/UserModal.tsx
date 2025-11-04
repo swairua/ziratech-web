@@ -149,32 +149,16 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
       })
     });
 
-    // Clone response to safely read the body
-    const clonedResponse = response.clone();
-
-    let responseText: string;
+    let result;
     try {
-      responseText = await clonedResponse.text();
-    } catch (readError) {
-      throw new Error('Failed to read response from server');
+      result = await response.json();
+    } catch (parseError) {
+      throw new Error('Invalid response format from server');
     }
 
     if (!response.ok) {
-      let errorMsg = 'Failed to create user';
-      try {
-        const result = JSON.parse(responseText);
-        errorMsg = result.error || errorMsg;
-      } catch {
-        errorMsg = responseText || errorMsg;
-      }
+      const errorMsg = result?.error || 'Failed to create user';
       throw new Error(errorMsg);
-    }
-
-    let result;
-    try {
-      result = JSON.parse(responseText);
-    } catch {
-      throw new Error('Invalid response format from server');
     }
 
     return result;
