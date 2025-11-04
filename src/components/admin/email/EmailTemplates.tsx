@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,18 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Plus, 
-  Edit, 
-  Eye, 
-  Trash2, 
-  Copy, 
-  Save, 
-  Mail, 
-  Users, 
+import { emailTemplatesApi } from '@/lib/apiClient';
+import {
+  Plus,
+  Edit,
+  Eye,
+  Trash2,
+  Copy,
+  Save,
+  Mail,
+  Users,
   AlertCircle,
   FileText,
-  Settings
+  Settings,
+  Loader
 } from 'lucide-react';
 
 interface EmailTemplate {
@@ -27,62 +29,39 @@ interface EmailTemplate {
   name: string;
   subject: string;
   description: string;
-  type: 'form_confirmation' | 'admin_alert' | 'welcome' | 'newsletter';
+  type: 'form_confirmation' | 'admin_alert' | 'welcome' | 'newsletter' | 'custom';
   content: string;
   variables: string[];
   created_at: string;
   updated_at: string;
 }
 
-const mockTemplates: EmailTemplate[] = [
-  {
-    id: '1',
-    name: 'Form Submission Confirmation',
-    subject: 'Thank you for your submission',
-    description: 'Sent to users when they submit a form',
-    type: 'form_confirmation',
-    content: `<h1>Thank you, {{name}}!</h1>
-<p>We have received your message and will get back to you within 6 hours during business hours.</p>
-<p>Your submission details:</p>
-<ul>
-  <li>Name: {{name}}</li>
-  <li>Email: {{email}}</li>
-  <li>Message: {{message}}</li>
-</ul>
-<p>Best regards,<br>The Zira Technologies Team</p>`,
-    variables: ['name', 'email', 'message'],
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z'
-  },
-  {
-    id: '2',
-    name: 'Admin Form Alert',
-    subject: 'New form submission received',
-    description: 'Sent to admins when a new form is submitted',
-    type: 'admin_alert',
-    content: `<h1>New Form Submission</h1>
-<p>A new form submission has been received on your website.</p>
-<p><strong>Details:</strong></p>
-<ul>
-  <li>Name: {{name}}</li>
-  <li>Email: {{email}}</li>
-  <li>Phone: {{phone}}</li>
-  <li>Message: {{message}}</li>
-  <li>Submitted at: {{submitted_at}}</li>
-</ul>
-<p><a href="{{admin_url}}">View in Admin Panel</a></p>`,
-    variables: ['name', 'email', 'phone', 'message', 'submitted_at', 'admin_url'],
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z'
-  }
-];
-
 export const EmailTemplates = () => {
-  const [templates, setTemplates] = useState<EmailTemplate[]>(mockTemplates);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    setIsLoading(true);
+    const response = await emailTemplatesApi.list();
+    if (response.data && Array.isArray(response.data)) {
+      setTemplates(response.data as EmailTemplate[]);
+    } else if (response.error) {
+      toast({
+        title: "Error",
+        description: "Failed to load email templates",
+        variant: "destructive",
+      });
+    }
+    setIsLoading(false);
+  };
 
   const handleSaveTemplate = () => {
     toast({
