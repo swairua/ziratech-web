@@ -90,9 +90,9 @@ export const FeaturedProductsInit = () => {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-green-900 mb-4">
-            The products table has been successfully created. You can now manage featured products in the admin panel.
+            The products database is accessible. You can now manage featured products in the admin panel.
           </p>
-          <Button 
+          <Button
             onClick={() => window.location.href = '/admin/featured-products'}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
@@ -121,67 +121,26 @@ export const FeaturedProductsInit = () => {
         <Alert className="bg-white border-yellow-300">
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-yellow-900">
-            The products table hasn't been created yet. Follow the steps below to initialize featured products.
+            The products table is not currently accessible. Please ensure your database is properly configured.
           </AlertDescription>
         </Alert>
 
         <div className="space-y-3">
           <h4 className="font-semibold text-yellow-900">Setup Instructions:</h4>
           <ol className="list-decimal list-inside space-y-2 text-sm text-yellow-900">
-            <li>Go to your <a 
-              href="https://app.supabase.com/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="underline font-medium hover:no-underline"
-            >
-              Supabase Dashboard
-            </a></li>
-            <li>Select your project</li>
-            <li>Navigate to <strong>SQL Editor</strong></li>
-            <li>Create a new query and paste the SQL below</li>
-            <li>Click <strong>Run</strong> to execute</li>
-            <li>Come back here and click <strong>Verify Setup</strong></li>
+            <li>Ensure the MySQL database is configured and running</li>
+            <li>The products table should be created via database migration</li>
+            <li>Verify database connection in api.php configuration</li>
+            <li>Click <strong>Verify Setup</strong> to check if the database is accessible</li>
           </ol>
         </div>
 
-        {/* SQL Code Block */}
-        <div className="bg-gray-900 rounded-lg p-4 text-white text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto">
-          <pre className="whitespace-pre-wrap break-words">{PRODUCTS_TABLE_SQL}</pre>
-        </div>
-
-        {/* Action Buttons - Simplified */}
+        {/* Action Buttons */}
         <div className="flex gap-3 flex-wrap">
-          <Button
-            onClick={handleOpenSupabase}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold flex-1 sm:flex-none"
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Open Supabase SQL Editor
-          </Button>
-
-          <Button
-            onClick={handleCopySQL}
-            variant="outline"
-            className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-          >
-            {isCopied ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy SQL
-              </>
-            )}
-          </Button>
-
           <Button
             onClick={checkTableStatus}
             disabled={isChecking}
-            variant="outline"
-            className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold flex-1 sm:flex-none"
           >
             {isChecking ? (
               <>
@@ -198,7 +157,7 @@ export const FeaturedProductsInit = () => {
         </div>
 
         <p className="text-xs text-yellow-800 mt-4 p-3 bg-white rounded border border-yellow-200">
-          💡 <strong>Tip:</strong> After running the SQL in Supabase, click "Verify Setup" above to check if the table was created successfully.
+          💡 <strong>Info:</strong> This application uses MySQL via api.php. Products table must be created in your database backend.
         </p>
       </CardContent>
     </Card>
