@@ -302,6 +302,56 @@ export const productsApi = {
   },
 };
 
+// Email Templates
+export const emailTemplatesApi = {
+  async list(params?: Record<string, any>) {
+    return apiCall("email_templates", "GET", params);
+  },
+
+  async get(id: string) {
+    return apiCall("email_templates", "GET", { id });
+  },
+
+  async create(data: any) {
+    return apiCall("email_templates", "POST", undefined, data);
+  },
+
+  async update(id: string, data: any) {
+    return apiCall("email_templates", "PUT", { id }, data);
+  },
+
+  async delete(id: string) {
+    return apiCall("email_templates", "DELETE", { id });
+  },
+};
+
+// Automation Rules
+export const automationRulesApi = {
+  async list(params?: Record<string, any>) {
+    return apiCall("automation_rules", "GET", params);
+  },
+
+  async get(id: string) {
+    return apiCall("automation_rules", "GET", { id });
+  },
+
+  async create(data: any) {
+    return apiCall("automation_rules", "POST", undefined, data);
+  },
+
+  async update(id: string, data: any) {
+    return apiCall("automation_rules", "PUT", { id }, data);
+  },
+
+  async delete(id: string) {
+    return apiCall("automation_rules", "DELETE", { id });
+  },
+
+  async toggle(id: string, isActive: boolean) {
+    return apiCall("automation_rules", "PUT", { id }, { is_active: isActive });
+  },
+};
+
 // Export a unified API object for convenience
 export const api = {
   activityLogs: activityLogsApi,
@@ -312,6 +362,8 @@ export const api = {
   profiles: profilesApi,
   userRoles: userRolesApi,
   products: productsApi,
+  emailTemplates: emailTemplatesApi,
+  automationRules: automationRulesApi,
 };
 
 export default api;
