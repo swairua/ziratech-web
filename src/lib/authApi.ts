@@ -69,28 +69,36 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export const authApi = {
   async login(email: string, password: string): Promise<AuthSession> {
     const passwordHash = await hashPassword(password);
+    const normalizedEmail = (email || '').trim().toLowerCase();
 
-    // Fetch all users and find by email
+    // Fetch users
     const response = await fetch(`${API_BASE}?table=users`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const users = await handleResponse<any[]>(response);
+    const usersJson = await handleResponse<any>(response);
+    const users: any[] = Array.isArray(usersJson)
+      ? usersJson
+      : Array.isArray(usersJson?.data)
+      ? usersJson.data
+      : Array.isArray(usersJson?.rows)
+      ? usersJson.rows
+      : [];
 
     if (!Array.isArray(users) || users.length === 0) {
       throw new Error('Invalid email or password');
     }
 
-    // Find user by email
-    const user = users.find((u: any) => u.email === email);
+    // Find user by email (case-insensitive)
+    const user = users.find((u: any) => (u.email || '').toLowerCase() === normalizedEmail);
 
     if (!user) {
       throw new Error('Invalid email or password');
     }
 
-    // Verify password
-    if (user.password_hash !== passwordHash) {
+    // Verify password hash matches
+    if ((user.password_hash || '') !== passwordHash) {
       throw new Error('Invalid email or password');
     }
 
@@ -100,11 +108,23 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const roles = await handleResponse<any[]>(roleResponse);
-    const userRole = roles.find((r: any) => r.user_id === user.id);
+    const rolesJson = await handleResponse<any>(roleResponse);
+    const roles: any[] = Array.isArray(rolesJson)
+      ? rolesJson
+      : Array.isArray(rolesJson?.data)
+      ? rolesJson.data
+      : Array.isArray(rolesJson?.rows)
+      ? rolesJson.rows
+      : [];
 
-    // Update last login
-    await fetch(`${API_BASE}?table=users&id=${user.id}`, {
+    const userIdNum = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    const userRole = roles.find((r: any) => {
+      const rid = typeof r.user_id === 'string' ? parseInt(r.user_id, 10) : r.user_id;
+      return rid === userIdNum;
+    });
+
+    // Update last login (best-effort)
+    await fetch(`${API_BASE}?table=users&id=${userIdNum}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ last_login_at: new Date().toISOString() }),
@@ -115,16 +135,15 @@ export const authApi = {
     // Store session
     const session: AuthSession = {
       user: {
-        id: user.id,
+        id: userIdNum,
         email: user.email,
         full_name: user.full_name,
         status: user.status,
-        role: userRole?.role || 'user',
+        role: (userRole?.role || 'user').toLowerCase(),
       },
       token,
     };
 
-    // Save to localStorage
     localStorage.setItem('auth_session', JSON.stringify(session));
     localStorage.setItem('auth_token', token);
 
@@ -158,7 +177,7 @@ export const authApi = {
 
   async isAdmin(): Promise<boolean> {
     const session = await this.getSession();
-    return session?.user.role === 'admin' || false;
+    return (session?.user.role || '').toLowerCase() === 'admin';
   },
 
   async signup(email: string, password: string, fullName: string): Promise<AuthSession> {
