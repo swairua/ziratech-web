@@ -58,6 +58,11 @@ async function makeRequest(method, payload = null) {
       },
     };
 
+    // Attach admin token when available for DDL operations
+    if (ADMIN_TOKEN) {
+      options.headers['X-Admin-Token'] = ADMIN_TOKEN;
+    }
+
     if (payload) {
       options.body = JSON.stringify(payload);
     }
@@ -129,7 +134,7 @@ async function migrate() {
     if (tableCreated) {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       await seedData();
-      console.log("\n��� Migration completed successfully!");
+      console.log("\n✨ Migration completed successfully!");
     } else {
       console.log("\n⚠️  Table creation failed. Skipping seeding.");
       process.exit(1);
