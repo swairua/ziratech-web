@@ -149,7 +149,15 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
       })
     });
 
-    const responseText = await response.text();
+    // Clone response to safely read the body
+    const clonedResponse = response.clone();
+
+    let responseText: string;
+    try {
+      responseText = await clonedResponse.text();
+    } catch (readError) {
+      throw new Error('Failed to read response from server');
+    }
 
     if (!response.ok) {
       let errorMsg = 'Failed to create user';
