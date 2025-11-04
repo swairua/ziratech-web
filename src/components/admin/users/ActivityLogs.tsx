@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Search, Activity, Clock, User } from 'lucide-react';
 
@@ -37,32 +37,30 @@ export const ActivityLogs = () => {
   const fetchActivityLogs = async () => {
     try {
       setLoading(true);
-      
-      let query = supabase
-        .from('activity_logs')
-        .select(`
-          id,
-          user_id,
-          action,
-          resource_type,
-          resource_id,
-          details,
-          created_at
-        `)
-        .order('created_at', { ascending: false })
-        .limit(50);
 
+      const response = await api.activityLogs.list({ limit: 50 });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      let logs = response.data || [];
+
+      // Apply search filter on client side
       if (searchQuery) {
-        query = query.or(`action.ilike.%${searchQuery}%,resource_type.ilike.%${searchQuery}%`);
+        const query = searchQuery.toLowerCase();
+        logs = logs.filter((log: any) =>
+          log.action?.toLowerCase().includes(query) ||
+          log.resource_type?.toLowerCase().includes(query)
+        );
       }
 
-      const { data, error } = await query;
+      // Sort by created_at descending
+      logs.sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
-      if (error) {
-        throw error;
-      }
-
-      setLogs(data || []);
+      setLogs(logs);
     } catch (error: any) {
       toast({
         variant: "destructive",
