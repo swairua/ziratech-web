@@ -1,0 +1,2 @@
+# This file ensures the assets directory exists in version control
+# The api-enhanced.php will create /assets/ directory with proper permissions if it doesn't exist
