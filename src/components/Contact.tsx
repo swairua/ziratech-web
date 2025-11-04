@@ -18,6 +18,25 @@ const Contact = () => {
     service: "",
     message: ""
   });
+
+  // Prefill from localStorage if present (e.g., Request Quote flow)
+  useState(() => {
+    try {
+      const raw = localStorage.getItem('contact_prefill');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setFormData(prev => ({
+          ...prev,
+          service: parsed.service || prev.service,
+          message: parsed.message || prev.message
+        }));
+        // remove prefill after applying
+        localStorage.removeItem('contact_prefill');
+      }
+    } catch (e) {
+      // ignore
+    }
+  });
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
