@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Star, Plus, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Star, Plus, Trash2, AlertTriangle, RefreshCw, Upload, X, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { productsAPI, type Product } from '@/lib/api';
 
@@ -31,12 +31,65 @@ const AdminFeaturedProducts = () => {
     category: '',
   });
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/admin');
     }
   }, [user, loading, navigate]);
+
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('https://zira-tech.com/api.php?action=upload_image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const imageUrl = data.url || data.image_url || `https://zira-tech.com/assets/${file.name}`;
+      setFormData(prev => ({ ...prev, image_url: imageUrl }));
+      setImagePreview(imageUrl);
+      toast.success('Image uploaded successfully');
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageUpload(file);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -154,6 +207,7 @@ const AdminFeaturedProducts = () => {
       image_url: product.image_url || '',
       category: product.category || '',
     });
+    setImagePreview(product.image_url || null);
     setEditingId(product.id);
     setShowForm(true);
   };
@@ -179,8 +233,12 @@ const AdminFeaturedProducts = () => {
       image_url: '',
       category: '',
     });
+    setImagePreview(null);
     setEditingId(null);
     setShowForm(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   if (loading) {
@@ -270,27 +328,67 @@ const AdminFeaturedProducts = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="price">Price</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      placeholder="0.00"
+                <div>
+                  <Label htmlFor="price">Price</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <Label>Product Image</Label>
+                  <div className="mt-2 space-y-3">
+                    {imagePreview || formData.image_url ? (
+                      <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                        <img
+                          src={imagePreview || formData.image_url}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagePreview(null);
+                            setFormData(prev => ({ ...prev, image_url: '' }));
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-brand-orange hover:bg-orange-50 transition-colors"
+                      >
+                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                        <p className="text-sm font-medium text-gray-700">Click to upload image</p>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      disabled={isUploading}
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="image_url">Image URL</Label>
-                    <Input
-                      id="image_url"
-                      type="url"
-                      value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                      placeholder="https://..."
-                    />
+                    {isUploading && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+                        <Loader className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </div>
+                    )}
+                    {formData.image_url && !imagePreview && (
+                      <p className="text-xs text-green-600">Image URL: {formData.image_url}</p>
+                    )}
                   </div>
                 </div>
 

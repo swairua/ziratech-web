@@ -302,6 +302,105 @@ export const productsApi = {
   },
 };
 
+// Email Templates
+export const emailTemplatesApi = {
+  async list(params?: Record<string, any>) {
+    return apiCall("email_templates", "GET", params);
+  },
+
+  async get(id: string) {
+    return apiCall("email_templates", "GET", { id });
+  },
+
+  async create(data: any) {
+    return apiCall("email_templates", "POST", undefined, data);
+  },
+
+  async update(id: string, data: any) {
+    return apiCall("email_templates", "PUT", { id }, data);
+  },
+
+  async delete(id: string) {
+    return apiCall("email_templates", "DELETE", { id });
+  },
+};
+
+// Automation Rules
+export const automationRulesApi = {
+  async list(params?: Record<string, any>) {
+    return apiCall("automation_rules", "GET", params);
+  },
+
+  async get(id: string) {
+    return apiCall("automation_rules", "GET", { id });
+  },
+
+  async create(data: any) {
+    return apiCall("automation_rules", "POST", undefined, data);
+  },
+
+  async update(id: string, data: any) {
+    return apiCall("automation_rules", "PUT", { id }, data);
+  },
+
+  async delete(id: string) {
+    return apiCall("automation_rules", "DELETE", { id });
+  },
+
+  async toggle(id: string, isActive: boolean) {
+    return apiCall("automation_rules", "PUT", { id }, { is_active: isActive });
+  },
+};
+
+// App Settings
+export const appSettingsApi = {
+  async list() {
+    return apiCall("app_settings", "GET");
+  },
+
+  async get(key: string) {
+    return apiCall("app_settings", "GET", { setting_key: key });
+  },
+
+  async set(key: string, value: any) {
+    return apiCall("app_settings", "POST", undefined, {
+      setting_key: key,
+      setting_value: value,
+    });
+  },
+
+  async update(id: string, data: any) {
+    return apiCall("app_settings", "PUT", { id }, data);
+  },
+
+  async delete(id: string) {
+    return apiCall("app_settings", "DELETE", { id });
+  },
+};
+
+// Notification Settings
+export const notificationSettingsApi = {
+  async list() {
+    return apiCall("notification_settings", "GET");
+  },
+
+  async get(userId: string) {
+    return apiCall("notification_settings", "GET", { user_id: userId });
+  },
+
+  async create(data: any) {
+    return apiCall("notification_settings", "POST", undefined, data);
+  },
+
+  async update(userId: string, data: any) {
+    return apiCall("notification_settings", "PUT", { user_id: userId }, data);
+  },
+
+  async delete(userId: string) {
+    return apiCall("notification_settings", "DELETE", { user_id: userId });
+  },
+};
+
 // Export a unified API object for convenience
 export const api = {
   activityLogs: activityLogsApi,
@@ -312,6 +411,10 @@ export const api = {
   profiles: profilesApi,
   userRoles: userRolesApi,
   products: productsApi,
+  emailTemplates: emailTemplatesApi,
+  automationRules: automationRulesApi,
+  appSettings: appSettingsApi,
+  notificationSettings: notificationSettingsApi,
 };
 
 export default api;

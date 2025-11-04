@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { companySettingsApi } from '@/lib/apiClient';
 import { 
   Mail, 
   Server, 
@@ -16,49 +17,122 @@ import {
   CheckCircle, 
   Settings, 
   Send,
-  Eye,
   TestTube,
   Globe,
-  Clock,
-  Users,
-  Key
+  Loader
 } from 'lucide-react';
 
+interface SmtpSettings {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  encryption: string;
+  from_name: string;
+  from_email: string;
+  reply_to: string;
+}
+
+interface DeliverySettings {
+  rate_limit: number;
+  retry_attempts: number;
+  retry_delay: number;
+  bounce_handling: boolean;
+  track_opens: boolean;
+  track_clicks: boolean;
+}
+
 export const EmailSettings = () => {
-  const [settings, setSettings] = useState({
-    smtp: {
-      host: 'smtp.resend.com',
-      port: 587,
-      username: 'resend',
-      password: '',
-      encryption: 'tls',
-      from_name: 'Zira Technologies',
-      from_email: 'info@ziratechnologies.com',
-      reply_to: 'support@ziratechnologies.com'
-    },
-    delivery: {
-      rate_limit: 100,
-      retry_attempts: 3,
-      retry_delay: 300,
-      bounce_handling: true,
-      track_opens: true,
-      track_clicks: true
-    },
-    security: {
-      dkim_enabled: true,
-      spf_enabled: true,
-      dmarc_enabled: true,
-      domain_verification: true
-    }
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [smtp, setSmtp] = useState<SmtpSettings>({
+    host: 'smtp.resend.com',
+    port: 587,
+    username: 'resend',
+    password: '',
+    encryption: 'tls',
+    from_name: 'Zira Technologies',
+    from_email: 'info@ziratechnologies.com',
+    reply_to: 'support@ziratechnologies.com'
+  });
+
+  const [delivery, setDelivery] = useState<DeliverySettings>({
+    rate_limit: 100,
+    retry_attempts: 3,
+    retry_delay: 300,
+    bounce_handling: true,
+    track_opens: true,
+    track_clicks: true
   });
 
   const { toast } = useToast();
 
-  const handleSaveSettings = (section: string) => {
-    toast({
-      title: "Settings Saved",
-      description: `${section} settings have been updated successfully`,
-    });
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    setIsLoading(true);
+    try {
+      const smtpResponse = await companySettingsApi.get('email_smtp_settings');
+      if (smtpResponse.data) {
+        const smtpData = typeof smtpResponse.data === 'string' 
+          ? JSON.parse(smtpResponse.data) 
+          : smtpResponse.data;
+        if (smtpData && typeof smtpData === 'object') {
+          setSmtp(prev => ({ ...prev, ...smtpData }));
+        }
+      }
+
+      const deliveryResponse = await companySettingsApi.get('email_delivery_settings');
+      if (deliveryResponse.data) {
+        const deliveryData = typeof deliveryResponse.data === 'string' 
+          ? JSON.parse(deliveryResponse.data) 
+          : deliveryResponse.data;
+        if (deliveryData && typeof deliveryData === 'object') {
+          setDelivery(prev => ({ ...prev, ...deliveryData }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load email settings:', error);
+    }
+    setIsLoading(false);
+  };
+
+  const handleSaveSmtpSettings = async () => {
+    setIsSaving(true);
+    try {
+      await companySettingsApi.set('email_smtp_settings', smtp);
+      toast({
+        title: "Settings Saved",
+        description: "SMTP settings have been updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save SMTP settings",
+        variant: "destructive",
+      });
+    }
+    setIsSaving(false);
+  };
+
+  const handleSaveDeliverySettings = async () => {
+    setIsSaving(true);
+    try {
+      await companySettingsApi.set('email_delivery_settings', delivery);
+      toast({
+        title: "Settings Saved",
+        description: "Delivery settings have been updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save delivery settings",
+        variant: "destructive",
+      });
+    }
+    setIsSaving(false);
   };
 
   const handleTestConnection = () => {
@@ -67,7 +141,6 @@ export const EmailSettings = () => {
       description: "Testing email configuration...",
     });
     
-    // Simulate test
     setTimeout(() => {
       toast({
         title: "Test Successful",
@@ -82,6 +155,23 @@ export const EmailSettings = () => {
       description: "A test email has been sent to your email address",
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-brand-navy">Email Settings</h2>
+          <p className="text-muted-foreground">Configure email delivery and SMTP settings</p>
+        </div>
+        <Card>
+          <CardContent className="text-center py-8">
+            <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Loading settings...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -107,7 +197,8 @@ export const EmailSettings = () => {
                 <Label htmlFor="smtp-host">SMTP Host</Label>
                 <Input 
                   id="smtp-host" 
-                  value={settings.smtp.host}
+                  value={smtp.host}
+                  onChange={(e) => setSmtp({...smtp, host: e.target.value})}
                   placeholder="smtp.resend.com"
                 />
               </div>
@@ -116,7 +207,8 @@ export const EmailSettings = () => {
                 <Input 
                   id="smtp-port" 
                   type="number"
-                  value={settings.smtp.port}
+                  value={smtp.port}
+                  onChange={(e) => setSmtp({...smtp, port: parseInt(e.target.value) || 587})}
                   placeholder="587"
                 />
               </div>
@@ -127,7 +219,8 @@ export const EmailSettings = () => {
                 <Label htmlFor="smtp-username">Username</Label>
                 <Input 
                   id="smtp-username" 
-                  value={settings.smtp.username}
+                  value={smtp.username}
+                  onChange={(e) => setSmtp({...smtp, username: e.target.value})}
                   placeholder="resend"
                 />
               </div>
@@ -136,6 +229,8 @@ export const EmailSettings = () => {
                 <Input 
                   id="smtp-password" 
                   type="password"
+                  value={smtp.password}
+                  onChange={(e) => setSmtp({...smtp, password: e.target.value})}
                   placeholder="Enter your API key"
                 />
               </div>
@@ -143,7 +238,7 @@ export const EmailSettings = () => {
 
             <div>
               <Label htmlFor="smtp-encryption">Encryption</Label>
-              <Select value={settings.smtp.encryption}>
+              <Select value={smtp.encryption} onValueChange={(value) => setSmtp({...smtp, encryption: value})}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -165,10 +260,18 @@ export const EmailSettings = () => {
                 <span>Test Connection</span>
               </Button>
               <Button 
-                onClick={() => handleSaveSettings('SMTP')}
+                onClick={handleSaveSmtpSettings}
+                disabled={isSaving}
                 className="bg-brand-orange hover:bg-brand-orange-dark"
               >
-                Save SMTP Settings
+                {isSaving ? (
+                  <>
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save SMTP Settings'
+                )}
               </Button>
             </div>
           </CardContent>
@@ -189,7 +292,8 @@ export const EmailSettings = () => {
                 <Label htmlFor="from-name">From Name</Label>
                 <Input 
                   id="from-name" 
-                  value={settings.smtp.from_name}
+                  value={smtp.from_name}
+                  onChange={(e) => setSmtp({...smtp, from_name: e.target.value})}
                   placeholder="Your Company Name"
                 />
               </div>
@@ -198,7 +302,8 @@ export const EmailSettings = () => {
                 <Input 
                   id="from-email" 
                   type="email"
-                  value={settings.smtp.from_email}
+                  value={smtp.from_email}
+                  onChange={(e) => setSmtp({...smtp, from_email: e.target.value})}
                   placeholder="noreply@yourcompany.com"
                 />
               </div>
@@ -209,16 +314,25 @@ export const EmailSettings = () => {
               <Input 
                 id="reply-to" 
                 type="email"
-                value={settings.smtp.reply_to}
+                value={smtp.reply_to}
+                onChange={(e) => setSmtp({...smtp, reply_to: e.target.value})}
                 placeholder="support@yourcompany.com"
               />
             </div>
 
             <Button 
-              onClick={() => handleSaveSettings('Sender Information')}
+              onClick={handleSaveSmtpSettings}
+              disabled={isSaving}
               className="bg-brand-orange hover:bg-brand-orange-dark"
             >
-              Save Sender Settings
+              {isSaving ? (
+                <>
+                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Sender Settings'
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -239,7 +353,8 @@ export const EmailSettings = () => {
                 <Input 
                   id="rate-limit" 
                   type="number"
-                  value={settings.delivery.rate_limit}
+                  value={delivery.rate_limit}
+                  onChange={(e) => setDelivery({...delivery, rate_limit: parseInt(e.target.value) || 100})}
                   placeholder="100"
                 />
               </div>
@@ -248,7 +363,8 @@ export const EmailSettings = () => {
                 <Input 
                   id="retry-attempts" 
                   type="number"
-                  value={settings.delivery.retry_attempts}
+                  value={delivery.retry_attempts}
+                  onChange={(e) => setDelivery({...delivery, retry_attempts: parseInt(e.target.value) || 3})}
                   placeholder="3"
                 />
               </div>
@@ -257,7 +373,8 @@ export const EmailSettings = () => {
                 <Input 
                   id="retry-delay" 
                   type="number"
-                  value={settings.delivery.retry_delay}
+                  value={delivery.retry_delay}
+                  onChange={(e) => setDelivery({...delivery, retry_delay: parseInt(e.target.value) || 300})}
                   placeholder="300"
                 />
               </div>
@@ -271,7 +388,8 @@ export const EmailSettings = () => {
                 </div>
                 <Switch 
                   id="bounce-handling" 
-                  checked={settings.delivery.bounce_handling}
+                  checked={delivery.bounce_handling}
+                  onCheckedChange={(checked) => setDelivery({...delivery, bounce_handling: checked})}
                 />
               </div>
               
@@ -282,7 +400,8 @@ export const EmailSettings = () => {
                 </div>
                 <Switch 
                   id="track-opens" 
-                  checked={settings.delivery.track_opens}
+                  checked={delivery.track_opens}
+                  onCheckedChange={(checked) => setDelivery({...delivery, track_opens: checked})}
                 />
               </div>
               
@@ -293,16 +412,25 @@ export const EmailSettings = () => {
                 </div>
                 <Switch 
                   id="track-clicks" 
-                  checked={settings.delivery.track_clicks}
+                  checked={delivery.track_clicks}
+                  onCheckedChange={(checked) => setDelivery({...delivery, track_clicks: checked})}
                 />
               </div>
             </div>
 
             <Button 
-              onClick={() => handleSaveSettings('Delivery')}
+              onClick={handleSaveDeliverySettings}
+              disabled={isSaving}
               className="bg-brand-orange hover:bg-brand-orange-dark"
             >
-              Save Delivery Settings
+              {isSaving ? (
+                <>
+                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Delivery Settings'
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -319,10 +447,10 @@ export const EmailSettings = () => {
           <CardContent className="space-y-4">
             <div className="grid gap-4">
               {[
-                { key: 'dkim_enabled', label: 'DKIM Authentication', description: 'Domain Keys Identified Mail' },
-                { key: 'spf_enabled', label: 'SPF Record', description: 'Sender Policy Framework' },
-                { key: 'dmarc_enabled', label: 'DMARC Policy', description: 'Domain-based Message Authentication' },
-                { key: 'domain_verification', label: 'Domain Verification', description: 'Verify domain ownership' }
+                { key: 'dkim', label: 'DKIM Authentication', description: 'Domain Keys Identified Mail', enabled: true },
+                { key: 'spf', label: 'SPF Record', description: 'Sender Policy Framework', enabled: true },
+                { key: 'dmarc', label: 'DMARC Policy', description: 'Domain-based Message Authentication', enabled: true },
+                { key: 'verification', label: 'Domain Verification', description: 'Verify domain ownership', enabled: true }
               ].map((item) => (
                 <div key={item.key} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
@@ -330,8 +458,8 @@ export const EmailSettings = () => {
                     <div className="text-sm text-muted-foreground">{item.description}</div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge className={settings.security[item.key as keyof typeof settings.security] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                      {settings.security[item.key as keyof typeof settings.security] ? (
+                    <Badge className={item.enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                      {item.enabled ? (
                         <>
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Enabled
@@ -343,9 +471,6 @@ export const EmailSettings = () => {
                         </>
                       )}
                     </Badge>
-                    <Button variant="outline" size="sm">
-                      <Settings className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               ))}
@@ -380,20 +505,6 @@ export const EmailSettings = () => {
                 type="email"
                 placeholder="test@example.com"
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="test-template">Test Template</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a template" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="confirmation">Form Confirmation</SelectItem>
-                  <SelectItem value="welcome">Welcome Email</SelectItem>
-                  <SelectItem value="alert">Admin Alert</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <Button 
