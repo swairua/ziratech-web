@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_URL as string) || '/api.php';
+const API_BASE = (import.meta.env.VITE_API_URL as string) || 'https://zira-tech.com/api.php';
 
 interface ApiResponse<T> {
   data?: T;
