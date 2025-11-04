@@ -32,25 +32,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
-  // Clone response immediately to avoid "body stream already read" errors
-  let safeResponse: Response;
+  let text: string;
   try {
-    safeResponse = response.clone();
+    text = await response.text();
   } catch (e) {
-    console.error('Response body already consumed:', status);
+    console.error('Failed to read response body', e);
     throw new Error(`API Error: ${status}`);
   }
 
-  const contentType = safeResponse.headers.get('content-type') || '';
+  const contentType = response.headers.get('content-type') || '';
+  const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
   if (!contentType.includes('application/json')) {
-    let text;
-    try {
-      text = await safeResponse.text();
-    } catch (e) {
-      console.error('Failed to read non-JSON response body', e);
-      throw new Error(`API Error: ${status}`);
-    }
-    const snippet = text.slice(0, 300).replace(/\s+/g, ' ');
     console.error('API returned non-JSON response:', snippet);
     if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
       throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
@@ -58,11 +50,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
     throw new Error('API Error: Invalid response format');
   }
 
-  let data;
+  let data: any;
   try {
-    data = await safeResponse.json();
+    data = text ? JSON.parse(text) : null;
   } catch (parseError) {
-    console.error('Failed to parse response as JSON:', parseError, 'Status:', status);
+    console.error('Failed to parse response as JSON:', parseError, 'Snippet:', snippet);
     throw new Error(`API Error: Invalid response format (${status})`);
   }
 
