@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, Eye, Upload, Loader2 } from 'lucide-react';
@@ -73,13 +73,16 @@ export const BlogPostEditor = ({ postId, onClose }: BlogPostEditorProps) => {
 
   const fetchCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('blog_categories')
-        .select('*')
-        .order('name');
+      const response = await api.blogCategories.list();
 
-      if (error) throw error;
-      setCategories(data || []);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      let categories = response.data || [];
+      // Sort by name
+      categories.sort((a: any, b: any) => a.name.localeCompare(b.name));
+      setCategories(categories);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -93,13 +96,13 @@ export const BlogPostEditor = ({ postId, onClose }: BlogPostEditorProps) => {
     if (!postId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('id', postId)
-        .single();
+      const response = await api.blogPosts.get(postId);
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      const data = response.data;
 
       setFormData({
         title: data.title || '',
@@ -163,19 +166,15 @@ export const BlogPostEditor = ({ postId, onClose }: BlogPostEditorProps) => {
         published_at: status === 'published' ? new Date().toISOString() : null
       };
 
+      let response;
       if (isEditing) {
-        const { error } = await supabase
-          .from('blog_posts')
-          .update(postData)
-          .eq('id', postId);
-
-        if (error) throw error;
+        response = await api.blogPosts.update(postId, postData);
       } else {
-        const { error } = await supabase
-          .from('blog_posts')
-          .insert(postData);
+        response = await api.blogPosts.create(postData);
+      }
 
-        if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
       }
 
       toast({
