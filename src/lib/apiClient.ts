@@ -77,34 +77,35 @@ async function apiCall<T>(
 
     const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
 
-    if (!contentType.includes('application/json')) {
-      console.error('Non-JSON API response:', snippet);
+    // Check if response is ok first
+    if (!ok) {
+      console.error(`API Error ${status}: ${snippet}`);
+      return { error: `API Error: ${status}` };
+    }
+
+    // If text is empty, return success with null data
+    if (!text || text.trim() === '') {
+      console.warn('Empty response body from API');
+      return { data: null };
+    }
+
+    // If content-type is missing or says JSON, try to parse
+    const isJsonContent = !contentType || contentType.includes('application/json') || contentType.includes('text/plain');
+
+    if (!isJsonContent) {
+      console.error('Non-JSON API response content-type:', contentType, 'Snippet:', snippet);
       if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
         return { error: 'Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.' };
       }
-      return { error: 'Invalid response format from API' };
+      return { error: `Invalid response format from API (${contentType})` };
     }
 
     let data: any;
     try {
-      data = text ? JSON.parse(text) : null;
+      data = JSON.parse(text);
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError?.toString(), 'Snippet:', snippet);
-      if (!ok) {
-        return { error: `API Error: ${status}` };
-      }
-      return { error: 'Invalid response format from API' };
-    }
-
-    // Check if response is ok
-    if (!ok) {
-      console.error(`API Error ${status}:`, data);
-      return { error: `API Error: ${status}` };
-    }
-
-    // Check for empty response
-    if (!data) {
-      return { error: 'Empty response from API' };
+      console.error('Failed to parse response as JSON:', parseError?.toString(), 'Text:', text.slice(0, 200));
+      return { error: 'Invalid JSON response from API' };
     }
 
     // Check if response contains error property
