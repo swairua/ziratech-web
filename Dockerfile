@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:18-alpine as builder
 
 WORKDIR /app
 
@@ -12,11 +12,21 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build with API URL set at build time
-RUN VITE_API_URL=https://zira-tech.com/api.php npm run build
+# Build with API URL set at build time - must be env var for Vite to pick up
+ENV VITE_API_URL=https://zira-tech.com/api.php
 
-# Serve with a simple HTTP server
+RUN npm run build
+
+# Production image
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install serve to run the app
 RUN npm install -g serve
+
+# Copy built app from builder
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 8080
 
