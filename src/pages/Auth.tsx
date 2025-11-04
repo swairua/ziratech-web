@@ -47,7 +47,12 @@ const Auth = () => {
       const passwordHash = await hashPasswordLocal(password);
 
       // Fetch user by email
-      const url = new URL(API_URL);
+      let url: URL;
+      try {
+        url = /^https?:\/\//i.test(API_URL) ? new URL(API_URL) : new URL(API_URL, window.location.origin);
+      } catch (err) {
+        url = new URL(`${API_URL}?table=users`, window.location.origin);
+      }
       url.searchParams.set('table', 'users');
       url.searchParams.set('email', email);
 
