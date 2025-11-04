@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,9 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, AlertTriangle, RefreshCw, Database, Edit2, Upload } from 'lucide-react';
-import { toast } from 'sonner';
-import { checkIfShowcaseWebsitesTableExists, initializeShowcaseWebsitesTable } from '@/lib/initializeShowcaseWebsites';
+import { Plus, Trash2, AlertTriangle, RefreshCw, Edit2 } from 'lucide-react';
 
 interface ShowcaseWebsite {
   id: string;
@@ -29,13 +28,11 @@ interface ShowcaseWebsite {
 const AdminProducts = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [websites, setWebsites] = useState<ShowcaseWebsite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [tableExists, setTableExists] = useState<boolean | null>(null);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -53,60 +50,28 @@ const AdminProducts = () => {
 
   useEffect(() => {
     if (user) {
-      checkTableAndFetchWebsites();
+      fetchWebsites();
     }
   }, [user]);
-
-  const checkTableAndFetchWebsites = async () => {
-    try {
-      setIsLoading(true);
-      const exists = await checkIfShowcaseWebsitesTableExists();
-      setTableExists(exists);
-      if (exists) {
-        await fetchWebsites();
-      }
-    } catch (error) {
-      console.error('Error checking table:', error);
-      setTableExists(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchWebsites = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('showcase_websites')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await api.products.list();
 
-      if (error) {
-        console.error(
-          'Error fetching products:',
-          JSON.stringify({
-            message: error.message,
-            code: error.code,
-            status: error.status,
-            details: error.details,
-            hint: error.hint
-          }, null, 2)
-        );
-
-        if (error.code === 'PGRST116' ||
-            error.message?.includes('relation') ||
-            error.message?.includes('does not exist') ||
-            error.message?.includes('showcase_websites')) {
-          toast.error('Showcase websites table not initialized. Click "Create Table" to set it up.');
-        } else if (error.code === '42P01') {
-          toast.error('Showcase websites table does not exist. Please initialize it.');
-        } else if (error.code === 'PGRST301') {
-          toast.error('Permission denied. You may not have admin access.');
-        } else {
-          toast.error('Failed to fetch showcase websites: ' + (error.message || 'Unknown error'));
-        }
+      if (response.error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch products: " + response.error,
+        });
       } else {
-        setWebsites(data || []);
+        let websites = response.data || [];
+        // Sort by created_at descending
+        websites.sort((a: any, b: any) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setWebsites(websites);
       }
     } catch (err) {
       console.error(
@@ -116,45 +81,13 @@ const AdminProducts = () => {
           stack: err instanceof Error ? err.stack : undefined
         }, null, 2)
       );
-      toast.error('An unexpected error occurred while fetching showcase websites');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred while fetching products",
+      });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingImage(true);
-      const timestamp = Date.now();
-      const fileName = `${timestamp}-${file.name}`;
-      const filePath = `showcase-websites/${fileName}`;
-
-      const { data, error } = await supabase.storage
-        .from('showcase-websites')
-        .upload(filePath, file, { upsert: false });
-
-      if (error) {
-        toast.error('Failed to upload image: ' + error.message);
-        return;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('showcase-websites')
-        .getPublicUrl(data.path);
-
-      setFormData(prev => ({ ...prev, image_url: publicUrl }));
-      toast.success('Image uploaded successfully');
-    } catch (error) {
-      console.error('Error uploading image:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      toast.error('Failed to upload image');
-    } finally {
-      setUploadingImage(false);
     }
   };
 
@@ -162,53 +95,53 @@ const AdminProducts = () => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      toast.error('Website name is required');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Website name is required",
+      });
       return;
     }
 
     try {
+      const websiteData = {
+        name: formData.name,
+        description: formData.description || null,
+        url: formData.url || null,
+        image_url: formData.image_url || null,
+        category: formData.category || null,
+      };
+
+      let response;
       if (editingId) {
-        const { error } = await supabase
-          .from('showcase_websites')
-          .update({
-            name: formData.name,
-            description: formData.description || null,
-            url: formData.url || null,
-            image_url: formData.image_url || null,
-            category: formData.category || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingId);
-
-        if (error) {
-          toast.error('Failed to update showcase website');
-        } else {
-          toast.success('Showcase website updated successfully');
-          setEditingId(null);
-          resetForm();
-          fetchWebsites();
+        response = await api.products.update(editingId, websiteData);
+        if (response.error) {
+          throw new Error(response.error);
         }
+        toast({
+          title: "Success",
+          description: "Product updated successfully",
+        });
       } else {
-        const { error } = await supabase
-          .from('showcase_websites')
-          .insert({
-            name: formData.name,
-            description: formData.description || null,
-            url: formData.url || null,
-            image_url: formData.image_url || null,
-            category: formData.category || null,
-          });
-
-        if (error) {
-          toast.error('Failed to create showcase website');
-        } else {
-          toast.success('Showcase website created successfully');
-          resetForm();
-          fetchWebsites();
+        response = await api.products.create(websiteData);
+        if (response.error) {
+          throw new Error(response.error);
         }
+        toast({
+          title: "Success",
+          description: "Product created successfully",
+        });
       }
-    } catch (err) {
-      toast.error('An error occurred');
+
+      setEditingId(null);
+      resetForm();
+      fetchWebsites();
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "An error occurred",
+      });
       console.error(err);
     }
   };
@@ -227,20 +160,24 @@ const AdminProducts = () => {
 
   const handleDeleteWebsite = async (websiteId: string) => {
     try {
-      const { error } = await supabase
-        .from('showcase_websites')
-        .delete()
-        .eq('id', websiteId);
+      const response = await api.products.delete(websiteId);
 
-      if (error) {
-        toast.error('Failed to delete showcase website');
-      } else {
-        toast.success('Showcase website deleted successfully');
-        setDeleteConfirm(null);
-        fetchWebsites();
+      if (response.error) {
+        throw new Error(response.error);
       }
-    } catch (err) {
-      toast.error('An error occurred');
+
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      });
+      setDeleteConfirm(null);
+      fetchWebsites();
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "An error occurred",
+      });
       console.error(err);
     }
   };
@@ -257,25 +194,6 @@ const AdminProducts = () => {
     setShowForm(false);
   };
 
-  const handleCreateTable = async () => {
-    try {
-      setIsInitializing(true);
-      const result = await initializeShowcaseWebsitesTable();
-
-      if (result.success) {
-        toast.success('Showcase websites table created successfully!');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await checkTableAndFetchWebsites();
-      } else {
-        toast.error(result.message || 'Failed to create table. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error creating table:', error);
-      toast.error('An error occurred while creating the table');
-    } finally {
-      setIsInitializing(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -292,86 +210,6 @@ const AdminProducts = () => {
     return null;
   }
 
-  if (tableExists === false) {
-    return (
-      <AdminLayout>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Products (Showcase Websites)</h1>
-            <p className="text-gray-600 mt-1">
-              Manage showcase websites and descriptions
-            </p>
-          </div>
-
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  <div>
-                    <CardTitle>Showcase Websites Table Not Initialized</CardTitle>
-                    <CardDescription>Create the showcase websites database table to get started</CardDescription>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <Alert className="bg-white border-yellow-300">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-900">
-                  The showcase websites table needs to be created in your database before you can manage showcase websites.
-                </AlertDescription>
-              </Alert>
-
-              <div className="bg-white rounded-lg p-4 border border-yellow-200">
-                <h4 className="font-semibold text-yellow-900 mb-3">What happens next?</h4>
-                <ul className="list-disc list-inside space-y-2 text-sm text-yellow-900">
-                  <li>We'll create a showcase_websites table in your Supabase database</li>
-                  <li>Configure proper access permissions and indexes</li>
-                  <li>You'll be able to add and manage showcase websites with images</li>
-                </ul>
-              </div>
-
-              <div className="flex gap-3 flex-wrap">
-                <Button
-                  onClick={handleCreateTable}
-                  disabled={isInitializing}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold"
-                >
-                  {isInitializing ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Table...
-                    </>
-                  ) : (
-                    <>
-                      <Database className="mr-2 h-4 w-4" />
-                      Create Table
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={() => checkTableAndFetchWebsites()}
-                  disabled={isInitializing}
-                  variant="outline"
-                  className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Verify Setup
-                </Button>
-              </div>
-
-              <p className="text-xs text-yellow-800 p-3 bg-white rounded border border-yellow-200">
-                💡 <strong>Tip:</strong> Click "Create Table" to automatically set up your showcase websites database. This typically takes a few seconds.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </AdminLayout>
-    );
-  }
 
   return (
     <AdminLayout>
@@ -452,14 +290,18 @@ const AdminProducts = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="image">Website Image</Label>
-                  <div className="mt-2">
+                  <Label htmlFor="image_url">Website Image URL</Label>
+                  <div className="mt-2 space-y-2">
                     {formData.image_url && (
-                      <div className="mb-4 relative">
+                      <div className="relative">
                         <img
                           src={formData.image_url}
                           alt="Preview"
                           className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                          onError={(e) => {
+                            // Handle broken image
+                            (e.target as HTMLImageElement).src = '';
+                          }}
                         />
                         <Button
                           type="button"
@@ -472,22 +314,14 @@ const AdminProducts = () => {
                         </Button>
                       </div>
                     )}
-                    <div className="relative">
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={uploadingImage}
-                        className="cursor-pointer"
-                      />
-                      {uploadingImage && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-orange"></div>
-                          <span className="text-sm text-gray-600">Uploading image...</span>
-                        </div>
-                      )}
-                    </div>
+                    <Input
+                      id="image_url"
+                      type="url"
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    <p className="text-xs text-gray-500">Enter a direct URL to an image or use an image hosting service</p>
                   </div>
                 </div>
 

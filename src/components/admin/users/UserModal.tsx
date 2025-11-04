@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -67,21 +67,15 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
     if (!userId) return;
 
     try {
-      // Fetch user profile and role
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      // Fetch user profile
+      const profileResponse = await api.profiles.get(userId);
+      if (profileResponse.error) throw new Error(profileResponse.error);
 
-      if (profileError) throw profileError;
+      const profile = profileResponse.data;
 
-      // Fetch user role separately
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
+      // Fetch user role
+      const roleResponse = await api.userRoles.get(userId);
+      const roleData = roleResponse.data;
 
       setFormData({
         email: profile.company_email || '',
@@ -127,74 +121,55 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
   };
 
   const createUser = async () => {
-    // Call the edge function to create user with admin privileges
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error('Not authenticated');
-    }
-
-    const response = await fetch('https://vzznvztokpdtlzcvojar.supabase.co/functions/v1/admin-create-user', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName,
-        role: formData.role,
-        status: formData.status
-      })
+    // Create user profile
+    const profileResponse = await api.profiles.create({
+      email: formData.email,
+      full_name: formData.fullName,
+      company_email: formData.email,
+      status: formData.status
     });
 
-    // Clone response immediately to avoid "body stream already read" errors
-    let safeResponse: Response;
-    try {
-      safeResponse = response.clone();
-    } catch (e) {
-      throw new Error('Failed to read response from server');
+    if (profileResponse.error) {
+      throw new Error(profileResponse.error);
     }
 
-    let result;
-    try {
-      result = await safeResponse.json();
-    } catch (parseError) {
-      throw new Error('Invalid response format from server');
+    // Note: Password management and authentication should be handled through
+    // a proper authentication system. The current implementation doesn't support
+    // direct password setting via the API for security reasons.
+
+    if (formData.password) {
+      toast({
+        title: "Note",
+        description: "Password must be set through the authentication system.",
+      });
     }
 
-    if (!response.ok) {
-      const errorMsg = result?.error || 'Failed to create user';
-      throw new Error(errorMsg);
-    }
-
-    return result;
+    return profileResponse;
   };
 
   const updateUser = async () => {
     if (!userId) return;
 
     // Update profile
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        full_name: formData.fullName,
-        company_email: formData.email,
-        status: formData.status
-      })
-      .eq('user_id', userId);
+    const profileResponse = await api.profiles.update(userId, {
+      full_name: formData.fullName,
+      company_email: formData.email,
+      status: formData.status
+    });
 
-    if (profileError) throw profileError;
+    if (profileResponse.error) {
+      throw new Error(profileResponse.error);
+    }
 
-    const { error: roleError } = await supabase
-      .from('user_roles')
-      .upsert({
-        user_id: userId,
-        role: formData.role as any
-      });
+    // Update user role
+    const roleResponse = await api.userRoles.upsert({
+      user_id: userId,
+      role: formData.role as any
+    });
 
-    if (roleError) throw roleError;
+    if (roleResponse.error) {
+      throw new Error(roleResponse.error);
+    }
 
     // For password updates, we'll need another edge function or handle differently
     // For now, skip password updates in edit mode to avoid admin API issues

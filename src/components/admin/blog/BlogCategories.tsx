@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Folder } from 'lucide-react';
 
@@ -46,13 +46,20 @@ export const BlogCategories = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('blog_categories')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await api.blogCategories.list();
 
-      if (error) throw error;
-      setCategories(data || []);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      let categories = response.data || [];
+
+      // Sort by created_at descending
+      categories.sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setCategories(categories);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -76,30 +83,23 @@ export const BlogCategories = () => {
 
     try {
       const slug = generateSlug(formData.name);
-      
+
+      const categoryData = {
+        name: formData.name,
+        slug,
+        description: formData.description,
+        color: formData.color
+      };
+
+      let response;
       if (editingCategory) {
-        const { error } = await supabase
-          .from('blog_categories')
-          .update({
-            name: formData.name,
-            slug,
-            description: formData.description,
-            color: formData.color
-          })
-          .eq('id', editingCategory.id);
-
-        if (error) throw error;
+        response = await api.blogCategories.update(editingCategory.id, categoryData);
       } else {
-        const { error } = await supabase
-          .from('blog_categories')
-          .insert({
-            name: formData.name,
-            slug,
-            description: formData.description,
-            color: formData.color
-          });
+        response = await api.blogCategories.create(categoryData);
+      }
 
-        if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
       }
 
       toast({
@@ -136,12 +136,11 @@ export const BlogCategories = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('blog_categories')
-        .delete()
-        .eq('id', categoryId);
+      const response = await api.blogCategories.delete(categoryId);
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
       toast({
         title: "Success",

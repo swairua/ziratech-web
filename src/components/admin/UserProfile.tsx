@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,20 +41,13 @@ export const UserProfile = () => {
 
   const fetchProfile = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
+      const response = await api.profiles.get(user?.id!);
 
-      if (error && error.code !== 'PGRST116') {
+      if (response.error) {
         console.error(
           'Error fetching profile:',
           JSON.stringify({
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint
+            message: response.error
           }, null, 2)
         );
         toast({
@@ -63,7 +56,7 @@ export const UserProfile = () => {
           description: "Failed to load profile data.",
         });
       } else {
-        setProfile(data);
+        setProfile(response.data);
       }
     } catch (error) {
       console.error(
@@ -80,24 +73,17 @@ export const UserProfile = () => {
 
   const fetchUserRole = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user?.id)
-        .single();
+      const response = await api.userRoles.get(user?.id!);
 
-      if (error && error.code !== 'PGRST116') {
+      if (response.error) {
         console.error(
           'Error fetching user role:',
           JSON.stringify({
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint
+            message: response.error
           }, null, 2)
         );
-      } else if (data) {
-        setUserRole(data.role);
+      } else if (response.data) {
+        setUserRole(response.data.role);
       }
     } catch (error) {
       console.error(
@@ -118,19 +104,16 @@ export const UserProfile = () => {
     const fullName = formData.get('full_name') as string;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user?.id);
+      const response = await api.profiles.update(user?.id!, {
+        full_name: fullName,
+        updated_at: new Date().toISOString(),
+      });
 
-      if (error) {
+      if (response.error) {
         toast({
           variant: "destructive",
           title: "Update Failed",
-          description: error.message,
+          description: response.error,
         });
       } else {
         toast({
@@ -139,7 +122,7 @@ export const UserProfile = () => {
         });
         fetchProfile();
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Update Failed",

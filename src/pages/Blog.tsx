@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -48,56 +48,78 @@ const Blog = () => {
   const fetchBlogPosts = async () => {
     try {
       setLoading(true);
-      
-      let query = supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('status', 'published')
-        .order('published_at', { ascending: false });
 
-      if (searchQuery) {
-        query = query.or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`);
+      const response = await api.blogPosts.list({ status: 'published' });
+
+      if (response.error) {
+        throw new Error(response.error);
       }
 
-      const from = (currentPage - 1) * postsPerPage;
-      const to = from + postsPerPage - 1;
-      
-      const { data, error, count } = await query.range(from, to);
+      let data = response.data || [];
 
-      if (error) throw error;
+      // Filter by search query on client side
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        data = data.filter((post: any) =>
+          post.title?.toLowerCase().includes(query) ||
+          post.excerpt?.toLowerCase().includes(query)
+        );
+      }
+
+      // Sort by published_at descending
+      data.sort((a: any, b: any) =>
+        new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
+      );
+
+      // Pagination on client side
+      const from = (currentPage - 1) * postsPerPage;
+      const to = from + postsPerPage;
+      const paginatedPosts = data.slice(from, to);
 
       // Fetch authors and categories separately
-      const authorIds = [...new Set(data?.map(post => post.author_id).filter(Boolean))];
-      const categoryIds = [...new Set(data?.map(post => post.category_id).filter(Boolean))];
+      const authorIds = [...new Set(paginatedPosts?.map((post: any) => post.author_id).filter(Boolean))];
+      const categoryIds = [...new Set(paginatedPosts?.map((post: any) => post.category_id).filter(Boolean))];
 
-      const [authorsData, categoriesData] = await Promise.all([
-        authorIds.length > 0 ? supabase.from('profiles').select('user_id, full_name').in('user_id', authorIds) : { data: [] },
-        categoryIds.length > 0 ? supabase.from('blog_categories').select('id, name, color').in('id', categoryIds) : { data: [] }
-      ]);
+      let authorsData: any[] = [];
+      let categoriesData: any[] = [];
+
+      if (authorIds.length > 0) {
+        const authResponse = await api.profiles.list();
+        if (!authResponse.error) {
+          authorsData = authResponse.data || [];
+        }
+      }
+
+      if (categoryIds.length > 0) {
+        const catResponse = await api.blogCategories.list();
+        if (!catResponse.error) {
+          categoriesData = catResponse.data || [];
+        }
+      }
 
       const authorsMap = new Map<string, any>();
       const categoriesMap = new Map<string, any>();
 
-      authorsData.data?.forEach(author => {
+      authorsData?.forEach(author => {
         if (author?.user_id) {
           authorsMap.set(author.user_id, author);
         }
       });
 
-      categoriesData.data?.forEach(cat => {
+      categoriesData?.forEach(cat => {
         if (cat?.id) {
           categoriesMap.set(cat.id, cat);
         }
       });
 
-      const formattedPosts = data?.map(post => ({
+      const formattedPosts = paginatedPosts?.map((post: any) => ({
         ...post,
         author: authorsMap.get(post.author_id) || { full_name: 'Anonymous' },
         category: categoriesMap.get(post.category_id) || undefined
       })) || [];
 
       setPosts(formattedPosts);
-      setTotalPages(Math.ceil((count || 0) / postsPerPage));
+      setTotalPages(Math.ceil((data.length || 0) / postsPerPage));
     } catch (error) {
       console.error(
         'Error fetching blog posts:',
