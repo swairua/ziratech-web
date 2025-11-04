@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { FormSubmissionsList } from './FormSubmissionsList';
 import { FormAnalytics } from './FormAnalytics';
 import { FileText, Briefcase, Settings, BarChart3, Video, Rocket, Globe, Lock, MessageSquare, Handshake, HelpCircle } from 'lucide-react';
-import { api } from '@/lib/apiClient';
+import { supabase } from '@/integrations/supabase/client';
 
 export const FormsManagement = () => {
   const [activeTab, setActiveTab] = useState('all');
@@ -27,15 +27,14 @@ export const FormsManagement = () => {
 
   const fetchFormStats = async () => {
     try {
-      // Get all form submissions
-      const response = await api.formSubmissions.list();
+      const { data: allSubmissions, error } = await supabase
+        .from('form_submissions')
+        .select('*');
 
-      if (response.error) {
-        console.error('Error fetching form stats:', response.error);
+      if (error) {
+        console.error('Error fetching form stats:', error);
         return;
       }
-
-      const allSubmissions = response.data || [];
 
       const stats = {
         contact: { total: 0, new: 0, responded: 0 },
