@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, TrendingUp, FileText, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 
 interface BlogStats {
   totalPosts: number;
@@ -28,19 +28,21 @@ export const BlogAnalytics = () => {
       setLoading(true);
 
       // Get all posts with view counts and reading times
-      const { data: posts, error } = await supabase
-        .from('blog_posts')
-        .select('status, view_count, reading_time');
+      const response = await api.blogPosts.list();
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      const posts = response.data || [];
 
       if (posts) {
         const totalPosts = posts.length;
-        const publishedPosts = posts.filter(post => post.status === 'published').length;
-        const totalViews = posts.reduce((sum, post) => sum + (post.view_count || 0), 0);
-        const readingTimes = posts.filter(post => post.reading_time).map(post => post.reading_time);
-        const avgReadingTime = readingTimes.length > 0 
-          ? Math.round(readingTimes.reduce((sum, time) => sum + time, 0) / readingTimes.length)
+        const publishedPosts = posts.filter((post: any) => post.status === 'published').length;
+        const totalViews = posts.reduce((sum: number, post: any) => sum + (post.view_count || 0), 0);
+        const readingTimes = posts.filter((post: any) => post.reading_time).map((post: any) => post.reading_time);
+        const avgReadingTime = readingTimes.length > 0
+          ? Math.round(readingTimes.reduce((sum: number, time: number) => sum + time, 0) / readingTimes.length)
           : 0;
 
         setStats({
