@@ -32,45 +32,13 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
-  // If the body has already been read elsewhere, we cannot safely re-read it.
-  if ((response as any).bodyUsed) {
-    console.error('Response body already read');
-    throw new Error(`API Error: response body already read (status ${status})`);
-  }
-
   let text: string | null = null;
 
-  // Try reading the response text directly. This is the most reliable approach because
-  // it avoids potential clone() edge-cases in some environments where the body may be locked.
   try {
     text = await response.text();
   } catch (err) {
-    // As a fallback, try cloning and reading the clone. If this also fails, and the original
-    // request was a GET, attempt a fresh GET retry to fetch the resource again.
-    const errMsg = String((err as Error)?.message || err);
-    console.warn('Direct response.text() failed:', errMsg);
-
-    try {
-      const cloned = response.clone();
-      text = await cloned.text();
-    } catch (cloneErr) {
-      console.warn('response.clone() failed:', String((cloneErr as Error)?.message || cloneErr));
-
-      // Only attempt a retry for safe idempotent GET requests.
-      // We check response.url and the original response type to avoid retrying on error responses.
-      if (response.url && errMsg.toLowerCase().includes('body') && response.type !== 'error') {
-        try {
-          const retryResp = await fetch(response.url, { method: 'GET', headers: { 'Content-Type': 'application/json' }, cache: 'no-store' });
-          text = await retryResp.text();
-        } catch (retryErr) {
-          console.error('Retry fetch failed:', retryErr);
-          throw new Error(`API Error: unable to read response body (status ${status})`);
-        }
-      } else {
-        console.error('Failed to read response body (text + clone attempts):', err, cloneErr);
-        throw new Error(`API Error: unable to read response body (status ${status})`);
-      }
-    }
+    console.error('Failed to read response body:', err);
+    throw new Error(`API Error: unable to read response body (status ${status})`);
   }
 
   const contentType = response.headers.get('content-type') || '';
@@ -126,7 +94,7 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const usersJson = await handleResponse<any>(response.clone());
+    const usersJson = await handleResponse<any>(response);
     const users: any[] = Array.isArray(usersJson)
       ? usersJson
       : Array.isArray(usersJson?.data)
@@ -157,7 +125,7 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const rolesJson = await handleResponse<any>(roleResponse.clone());
+    const rolesJson = await handleResponse<any>(roleResponse);
     const roles: any[] = Array.isArray(rolesJson)
       ? rolesJson
       : Array.isArray(rolesJson?.data)
@@ -274,7 +242,7 @@ export const authApi = {
       }),
     });
 
-    const userResult = await handleResponse<{ id: number }>(createResponse.clone());
+    const userResult = await handleResponse<{ id: number }>(createResponse);
 
     if (!userResult.id) {
       throw new Error('Failed to create user');
