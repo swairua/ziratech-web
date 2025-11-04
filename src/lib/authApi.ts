@@ -32,31 +32,42 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
+  // If the body has already been read elsewhere, we cannot safely re-read it.
+  if ((response as any).bodyUsed) {
+    console.error('Response body already read');
+    throw new Error(`API Error: response body already read (status ${status})`);
+  }
+
   let text: string | null = null;
 
-  // Prefer reading from a clone (safest), otherwise fall back to original response
+  // Try reading the response text directly. This is the most reliable approach because
+  // it avoids potential clone() edge-cases in some environments where the body may be locked.
   try {
-    const cloned = response.clone();
-    text = await cloned.text();
-  } catch (cloneErr) {
-    // clone may fail if body already read; try reading original
+    text = await response.text();
+  } catch (err) {
+    // As a fallback, try cloning and reading the clone. If this also fails, and the original
+    // request was a GET, attempt a fresh GET retry to fetch the resource again.
+    const errMsg = String((err as Error)?.message || err);
+    console.warn('Direct response.text() failed:', errMsg);
+
     try {
-      text = await response.text();
-    } catch (readErr) {
-      // If both fail due to body already read, attempt a simple retry GET (only safe for GET requests)
-      const msg = String(cloneErr?.message || readErr?.message || 'unknown');
-      console.warn('Initial response body read failed:', msg);
-      if (response.url && msg.toLowerCase().includes('body') && response.type !== 'error') {
+      const cloned = response.clone();
+      text = await cloned.text();
+    } catch (cloneErr) {
+      console.warn('response.clone() failed:', String((cloneErr as Error)?.message || cloneErr));
+
+      // Only attempt a retry for safe idempotent GET requests.
+      // We check response.url and the original response type to avoid retrying on error responses.
+      if (response.url && errMsg.toLowerCase().includes('body') && response.type !== 'error') {
         try {
           const retryResp = await fetch(response.url, { method: 'GET', headers: { 'Content-Type': 'application/json' }, cache: 'no-store' });
-          const retryText = await retryResp.text();
-          text = retryText;
+          text = await retryResp.text();
         } catch (retryErr) {
           console.error('Retry fetch failed:', retryErr);
           throw new Error(`API Error: unable to read response body (status ${status})`);
         }
       } else {
-        console.error('Failed to read response body (cloneErr, readErr):', cloneErr, readErr);
+        console.error('Failed to read response body (text + clone attempts):', err, cloneErr);
         throw new Error(`API Error: unable to read response body (status ${status})`);
       }
     }
@@ -66,7 +77,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
 
   if (!contentType.includes('application/json')) {
-    // If we retried, content-type may be on retry response; try to detect from snippet
     if (!contentType || !contentType.includes('application/json')) {
       if (snippet.trim().startsWith('{') || snippet.trim().startsWith('[')) {
         // proceed with parsing
