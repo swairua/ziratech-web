@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,12 +11,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Star, Plus, Trash2, AlertTriangle, RefreshCw, Database } from 'lucide-react';
+import { Star, Plus, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { checkIfProductsTableExists, initializeProductsTable } from '@/lib/initializeFeaturedProducts';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Product = Tables<'products'>;
+import { productsAPI, type Product } from '@/lib/api';
 
 const AdminFeaturedProducts = () => {
   const { user, loading } = useAuth();
