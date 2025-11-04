@@ -52,3 +52,9 @@ export const copySQLToClipboard = () => {
   navigator.clipboard.writeText(PRODUCTS_TABLE_SQL);
   return true;
 };
+
+// Note: This is for legacy Supabase support. Current system uses mysqli via api.php
+export const openSupabaseSQL = () => {
+  console.warn('Supabase migration is being handled via api.php (mysqli)');
+  return;
+};
