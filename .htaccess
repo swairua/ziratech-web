@@ -1,0 +1,90 @@
+# Apache configuration for Zira Technologies SPA + PHP endpoints
+# Place this file at the site DocumentRoot (project root)
+
+# Prevent content negotiation quirks
+Options -MultiViews
+
+# Ensure index files
+DirectoryIndex index.html index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Base path (root)
+  RewriteBase /
+
+  # Force HTTPS in production (but NOT on localhost/127.0.0.1)
+  RewriteCond %{HTTPS} !=on [OR]
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:\d+)?$ [NC]
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301,NE]
+
+  # Serve existing files/directories directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Allow direct access to PHP endpoints
+  RewriteRule ^.*\.php$ - [L]
+
+  # SPA fallback: route all other requests to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Gzip/Brotli compression where available
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css text/javascript application/javascript application/json application/xml image/svg+xml
+</IfModule>
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/plain text/html text/xml text/css text/javascript application/javascript application/json application/xml image/svg+xml
+</IfModule>
+
+# Caching: long cache for static assets, short/no cache for HTML
+<IfModule mod_expires.c>
+  ExpiresActive On
+  # Static assets (cache busting via filenames/hashes)
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/javascript "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType font/ttf "access plus 1 year"
+  ExpiresByType font/otf "access plus 1 year"
+  ExpiresByType application/font-woff "access plus 1 year"
+  ExpiresByType application/font-woff2 "access plus 1 year"
+  # HTML should not be aggressively cached
+  ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# Ensure HTML is not cached by proxies
+<FilesMatch "\.(html|htm)$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </IfModule>
+</FilesMatch>
+
+# CORS for web fonts
+<IfModule mod_headers.c>
+  <FilesMatch "\.(ttf|ttc|otf|eot|woff|woff2)$">
+    Header set Access-Control-Allow-Origin "*"
+  </FilesMatch>
+</IfModule>
+
+# Security headers (sane defaults; adjust if needed)
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# ETag off can reduce cache validation overhead
+FileETag None
+
+# Deny directory listing
+Options -Indexes
