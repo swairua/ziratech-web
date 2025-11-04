@@ -102,6 +102,15 @@ export const BlogCategories = () => {
         throw new Error(response.error);
       }
 
+      // Audit log
+      await api.activityLogs.create({
+        user_id: null,
+        action: editingCategory ? 'category_updated' : 'category_created',
+        table_name: 'blog_categories',
+        record_id: editingCategory ? editingCategory.id : (response as any).id,
+        description: JSON.stringify({ name: categoryData.name })
+      });
+
       toast({
         title: "Success",
         description: `Category ${editingCategory ? 'updated' : 'created'} successfully`,
@@ -141,6 +150,15 @@ export const BlogCategories = () => {
       if (response.error) {
         throw new Error(response.error);
       }
+
+      // Audit log
+      await api.activityLogs.create({
+        user_id: null,
+        action: 'category_deleted',
+        table_name: 'blog_categories',
+        record_id: categoryId,
+        description: JSON.stringify({ name })
+      });
 
       toast({
         title: "Success",

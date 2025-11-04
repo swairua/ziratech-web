@@ -18,9 +18,12 @@ interface ActivityLog {
   id: string;
   user_id: string | null;
   action: string;
-  resource_type: string | null;
-  resource_id: string | null;
-  details: any;
+  table_name?: string | null;
+  record_id?: string | null;
+  description?: any;
+  resource_type?: string | null;
+  resource_id?: string | null;
+  details?: any;
   created_at: string;
 }
 
@@ -46,12 +49,20 @@ export const ActivityLogs = () => {
 
       let logs = response.data || [];
 
+      // Normalize shape (support table_name/record_id/description as well)
+      logs = logs.map((l: any) => ({
+        ...l,
+        resource_type: l.resource_type ?? l.table_name ?? null,
+        resource_id: l.resource_id ?? l.record_id ?? null,
+        details: l.details ?? (typeof l.description === 'string' ? safeParse(l.description) : l.description),
+      }));
+
       // Apply search filter on client side
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         logs = logs.filter((log: any) =>
           log.action?.toLowerCase().includes(query) ||
-          log.resource_type?.toLowerCase().includes(query)
+          (log.resource_type ?? '').toLowerCase().includes(query)
         );
       }
 
@@ -79,7 +90,15 @@ export const ActivityLogs = () => {
       'user_deleted': 'bg-red-100 text-red-800',
       'role_assigned': 'bg-purple-100 text-purple-800',
       'login': 'bg-gray-100 text-gray-800',
-      'logout': 'bg-gray-100 text-gray-800'
+      'logout': 'bg-gray-100 text-gray-800',
+      'blog_post_created': 'bg-green-100 text-green-800',
+      'blog_post_updated': 'bg-blue-100 text-blue-800',
+      'blog_post_deleted': 'bg-red-100 text-red-800',
+      'blog_post_published': 'bg-green-100 text-green-800',
+      'blog_post_unpublished': 'bg-yellow-100 text-yellow-800',
+      'category_created': 'bg-green-100 text-green-800',
+      'category_updated': 'bg-blue-100 text-blue-800',
+      'category_deleted': 'bg-red-100 text-red-800'
     } as const;
 
     return (
@@ -89,11 +108,18 @@ export const ActivityLogs = () => {
     );
   };
 
+  function safeParse(str: any) {
+    if (typeof str !== 'string') return str;
+    try { return JSON.parse(str); } catch { return { message: str }; }
+  }
+
   const formatDetails = (details: any) => {
     if (!details) return null;
-    
-    // Format JSON details for display
-    return Object.entries(details).map(([key, value]) => (
+
+    const obj = typeof details === 'object' ? details : safeParse(details);
+    if (!obj || typeof obj !== 'object') return null;
+
+    return Object.entries(obj).map(([key, value]) => (
       <div key={key} className="text-xs text-gray-500">
         <span className="font-medium">{key}:</span> {String(value)}
       </div>
@@ -166,7 +192,7 @@ export const ActivityLogs = () => {
                           <User className="h-4 w-4 text-gray-400" />
                           <div>
                             <div className="font-medium text-sm">
-                              {log.user_id ? `User ${log.user_id.slice(0, 8)}...` : 'System'}
+                              {log.user_id ? `User ${String(log.user_id).slice(0, 8)}...` : 'System'}
                             </div>
                             <div className="text-xs text-gray-500">
                               Activity Log

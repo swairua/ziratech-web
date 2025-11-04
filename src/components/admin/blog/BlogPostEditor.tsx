@@ -177,6 +177,17 @@ export const BlogPostEditor = ({ postId, onClose }: BlogPostEditorProps) => {
         throw new Error(response.error);
       }
 
+      // Determine record id
+      const recordId = (response as any).id || postId;
+      // Audit log
+      await api.activityLogs.create({
+        user_id: user.id,
+        action: isEditing ? 'blog_post_updated' : 'blog_post_created',
+        table_name: 'blog_posts',
+        record_id: recordId,
+        description: JSON.stringify({ title: formData.title, status })
+      });
+
       toast({
         title: "Success",
         description: `Post ${status === 'published' ? 'published' : 'saved'} successfully`,
