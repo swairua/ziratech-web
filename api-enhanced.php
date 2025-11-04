@@ -1,7 +1,7 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Content-Type: application/json");
 
 // Handle preflight requests
@@ -206,6 +206,94 @@ switch ($method) {
         break;
 
     case 'POST':
+        // Handle image upload
+        if ($action === 'upload_image') {
+            if (!isset($_FILES['file'])) {
+                http_response_code(400);
+                echo json_encode(["error" => "No file provided"]);
+                exit;
+            }
+
+            $file = $_FILES['file'];
+            $fileName = $file['name'];
+            $fileTmp = $file['tmp_name'];
+            $fileSize = $file['size'];
+            $fileError = $file['error'];
+
+            // Validate file upload
+            if ($fileError !== UPLOAD_ERR_OK) {
+                http_response_code(400);
+                $errorMessages = [
+                    UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize',
+                    UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE',
+                    UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                    UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
+                    UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                    UPLOAD_ERR_EXTENSION => 'File upload stopped by extension'
+                ];
+                echo json_encode(["error" => $errorMessages[$fileError] ?? "Unknown upload error"]);
+                exit;
+            }
+
+            // Validate file size (5MB max)
+            $maxSize = 5 * 1024 * 1024;
+            if ($fileSize > $maxSize) {
+                http_response_code(400);
+                echo json_encode(["error" => "File size exceeds 5MB limit"]);
+                exit;
+            }
+
+            // Get MIME type
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $fileTmp);
+            finfo_close($finfo);
+
+            // Validate image MIME type
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+            if (!in_array($mimeType, $allowedMimes)) {
+                http_response_code(400);
+                echo json_encode(["error" => "Invalid file type. Only images are allowed."]);
+                exit;
+            }
+
+            // Create uploads directory if it doesn't exist
+            $uploadsDir = __DIR__ . '/assets';
+            if (!is_dir($uploadsDir)) {
+                if (!mkdir($uploadsDir, 0755, true)) {
+                    http_response_code(500);
+                    echo json_encode(["error" => "Failed to create uploads directory"]);
+                    exit;
+                }
+            }
+
+            // Generate safe filename
+            $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $safeFileName = 'img_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $fileExt;
+            $targetPath = $uploadsDir . '/' . $safeFileName;
+
+            // Move uploaded file
+            if (!move_uploaded_file($fileTmp, $targetPath)) {
+                http_response_code(500);
+                echo json_encode(["error" => "Failed to save file"]);
+                exit;
+            }
+
+            // Set proper permissions
+            chmod($targetPath, 0644);
+
+            // Return success with file URL
+            $fileUrl = 'https://zira-tech.com/assets/' . $safeFileName;
+            echo json_encode([
+                "success" => true,
+                "url" => $fileUrl,
+                "image_url" => $fileUrl,
+                "filename" => $safeFileName,
+                "path" => $targetPath
+            ]);
+            exit;
+        }
+
         // Filter out special keys
         $excludeKeys = ['create_table', 'alter_table', 'drop_table', 'action'];
         $inputData = array_diff_key($input, array_flip($excludeKeys));
