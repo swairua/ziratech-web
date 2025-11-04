@@ -36,33 +36,55 @@ async function apiCall<T>(
 
     const response = await fetch(url.toString(), options);
 
-    // Check if response is ok first
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error ${response.status}:`, errorText);
+    // Clone response immediately to avoid "body stream already read" errors
+    // This ensures we can safely read the response even if something upstream read it
+    let safeResponse: Response;
+    try {
+      safeResponse = response.clone();
+    } catch (e) {
+      // If we can't clone, the body was already consumed
+      // Return error with status code only
+      console.error('Response body already consumed before clone:', response.status);
       return { error: `API Error: ${response.status}` };
     }
 
-    // Check if response has content
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('Invalid content type:', contentType);
+    // Check response status first (doesn't require reading body)
+    const status = response.status;
+    const ok = response.ok;
+
+    let data: any;
+
+    // Try to parse response as JSON
+    try {
+      data = await safeResponse.json();
+    } catch (parseError) {
+      // If JSON parsing fails, it could be:
+      // 1. Empty response
+      // 2. HTML error page (from proxy/server on 500 error)
+      // 3. Plain text error message
+      console.error('Failed to parse response as JSON:', parseError?.toString(), 'Status:', status);
+
+      // Return appropriate error based on status
+      if (!ok) {
+        return { error: `API Error: ${status}` };
+      }
+
+      // Response was ok but couldn't parse - might be empty or invalid format
       return { error: 'Invalid response format from API' };
     }
 
-    const responseText = await response.text();
-    if (!responseText) {
+    // Check if response is ok
+    if (!ok) {
+      console.error(`API Error ${status}:`, data);
+      return { error: `API Error: ${status}` };
+    }
+
+    // Check for empty response
+    if (!data) {
       return { error: 'Empty response from API' };
     }
 
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError, 'Response:', responseText);
-      return { error: 'Failed to parse API response' };
-    }
-
+    // Check if response contains error property
     if (data.error) {
       return { error: data.error };
     }

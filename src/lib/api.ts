@@ -14,10 +14,37 @@ export interface Product {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  const data = await response.json();
+  const status = response.status;
+  const ok = response.ok;
 
-  if (!response.ok || data.error) {
-    throw new Error(data.error || `API Error: ${response.status}`);
+  // Clone response immediately to avoid "body stream already read" errors
+  let safeResponse: Response;
+  try {
+    safeResponse = response.clone();
+  } catch (e) {
+    console.error('Response body already consumed:', status);
+    throw new Error(`API Error: ${status}`);
+  }
+
+  let data;
+  try {
+    data = await safeResponse.json();
+  } catch (parseError) {
+    console.error('Failed to parse response as JSON:', parseError, 'Status:', status);
+    throw new Error(`Invalid JSON response from API (${status})`);
+  }
+
+  if (!ok) {
+    console.error(`API Error ${status}:`, data);
+    throw new Error(`API Error: ${status}`);
+  }
+
+  if (!data) {
+    throw new Error('Empty response from API');
+  }
+
+  if (data.error) {
+    throw new Error(data.error);
   }
 
   return data;

@@ -149,10 +149,24 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
       })
     });
 
-    const result = await response.json();
-    
+    // Clone response immediately to avoid "body stream already read" errors
+    let safeResponse: Response;
+    try {
+      safeResponse = response.clone();
+    } catch (e) {
+      throw new Error('Failed to read response from server');
+    }
+
+    let result;
+    try {
+      result = await safeResponse.json();
+    } catch (parseError) {
+      throw new Error('Invalid response format from server');
+    }
+
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to create user');
+      const errorMsg = result?.error || 'Failed to create user';
+      throw new Error(errorMsg);
     }
 
     return result;
