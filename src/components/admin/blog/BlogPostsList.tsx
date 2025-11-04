@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Search, MoreHorizontal, Edit, Trash2, Eye, Calendar, User } from 'lucide-react';
 
@@ -65,64 +65,35 @@ export const BlogPostsList = ({ onEditPost }: BlogPostsListProps) => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      
-      let query = supabase
-        .from('blog_posts')
-        .select(`
-          id,
-          title,
-          slug,
-          excerpt,
-          status,
-          published_at,
-          created_at,
-          view_count,
-          reading_time,
-          category_id,
-          author_id
-        `)
-        .order('created_at', { ascending: false });
 
-      // Apply search filter
+      const response = await api.blogPosts.list();
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      let posts = response.data || [];
+
+      // Apply search filter on client side
       if (searchQuery) {
-        query = query.or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`);
+        const query = searchQuery.toLowerCase();
+        posts = posts.filter((p: any) =>
+          p.title?.toLowerCase().includes(query) ||
+          p.excerpt?.toLowerCase().includes(query)
+        );
       }
 
-      // Apply status filter
+      // Apply status filter on client side
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        posts = posts.filter((p: any) => p.status === statusFilter);
       }
 
-      const { data, error } = await query;
+      // Sort by created_at descending
+      posts.sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
-      if (error) {
-        throw error;
-      }
-
-      // Fetch categories and authors separately to avoid relation issues
-      const { data: categories } = await supabase
-        .from('blog_categories')
-        .select('id, name, color');
-
-      const { data: authors } = await supabase
-        .from('profiles')
-        .select('user_id, full_name');
-
-      // Create lookup maps
-      const categoryMap = new Map();
-      categories?.forEach(cat => categoryMap.set(cat.id, cat));
-
-      const authorMap = new Map();
-      authors?.forEach(author => authorMap.set(author.user_id, author));
-
-      // Transform data with lookups
-      const transformedPosts = data?.map(post => ({
-        ...post,
-        blog_categories: categoryMap.get(post.category_id) || null,
-        profiles: authorMap.get(post.author_id) || null
-      })) || [];
-
-      setPosts(transformedPosts);
+      setPosts(posts);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -137,26 +108,23 @@ export const BlogPostsList = ({ onEditPost }: BlogPostsListProps) => {
   const handleStatusUpdate = async (postId: string, newStatus: string) => {
     try {
       const updateData: any = { status: newStatus };
-      
+
       // Set published_at when publishing
       if (newStatus === 'published') {
         updateData.published_at = new Date().toISOString();
       }
 
-      const { error } = await supabase
-        .from('blog_posts')
-        .update(updateData)
-        .eq('id', postId);
+      const response = await api.blogPosts.update(postId, updateData);
 
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw new Error(response.error);
       }
 
       toast({
         title: "Success",
         description: `Post ${newStatus} successfully`,
       });
-      
+
       fetchPosts();
     } catch (error: any) {
       toast({
@@ -173,20 +141,17 @@ export const BlogPostsList = ({ onEditPost }: BlogPostsListProps) => {
     }
 
     try {
-      const { error } = await supabase
-        .from('blog_posts')
-        .delete()
-        .eq('id', postId);
+      const response = await api.blogPosts.delete(postId);
 
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw new Error(response.error);
       }
 
       toast({
         title: "Success",
         description: "Post deleted successfully",
       });
-      
+
       fetchPosts();
     } catch (error: any) {
       toast({
