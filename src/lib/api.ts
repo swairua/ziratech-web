@@ -14,7 +14,15 @@ export interface Product {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  const responseText = await response.text();
+  // Clone response to safely read the body
+  const clonedResponse = response.clone();
+
+  let responseText: string;
+  try {
+    responseText = await clonedResponse.text();
+  } catch (readError) {
+    throw new Error(`Failed to read response: ${readError instanceof Error ? readError.message : 'Unknown error'}`);
+  }
 
   if (!response.ok) {
     throw new Error(`API Error ${response.status}: ${responseText || 'Unknown error'}`);
