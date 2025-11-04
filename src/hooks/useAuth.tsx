@@ -6,6 +6,7 @@ interface AuthContextType {
   session: AuthSession | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,22 +16,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const checkSession = async () => {
+    try {
+      const currentSession = await authApi.getSession();
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+    } catch (error) {
+      console.error('Error checking session:', error);
+      setSession(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const currentSession = await authApi.getSession();
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      } catch (error) {
-        console.error('Error checking session:', error);
-        setSession(null);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+    checkSession();
+
+    const handleStorageChange = () => {
+      checkSession();
     };
 
-    checkSession();
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const signOut = async () => {
@@ -43,11 +54,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const refreshSession = async () => {
+    await checkSession();
+  };
+
   const value = {
     user,
     session,
     loading,
     signOut,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

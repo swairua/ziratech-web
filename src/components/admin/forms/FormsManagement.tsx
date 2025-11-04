@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { FormSubmissionsList } from './FormSubmissionsList';
 import { FormAnalytics } from './FormAnalytics';
 import { FileText, Briefcase, Settings, BarChart3, Video, Rocket, Globe, Lock, MessageSquare, Handshake, HelpCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 
 export const FormsManagement = () => {
   const [activeTab, setActiveTab] = useState('all');
@@ -27,20 +27,15 @@ export const FormsManagement = () => {
 
   const fetchFormStats = async () => {
     try {
-      // Get total counts for each form type
-      const { data: allSubmissions, error } = await supabase
-        .from('form_submissions')
-        .select('form_type, status');
+      // Get all form submissions
+      const response = await api.formSubmissions.list();
 
-      if (error) {
-        console.error('Error fetching form stats:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
+      if (response.error) {
+        console.error('Error fetching form stats:', response.error);
         return;
       }
+
+      const allSubmissions = response.data || [];
 
       const stats = {
         contact: { total: 0, new: 0, responded: 0 },
@@ -54,7 +49,7 @@ export const FormsManagement = () => {
         support: { total: 0, new: 0, responded: 0 }
       };
 
-      allSubmissions?.forEach(submission => {
+      (Array.isArray(allSubmissions) ? allSubmissions : []).forEach((submission: any) => {
         const type = submission.form_type as keyof typeof stats;
         if (stats[type]) {
           stats[type].total++;

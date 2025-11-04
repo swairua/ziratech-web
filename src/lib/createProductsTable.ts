@@ -42,13 +42,13 @@ CREATE POLICY "Allow admins to manage products" ON products
   );
 `;
 
-export const openSupabaseSQL = () => {
-  const projectId = 'vzznvztokpdtlzcvojar';
-  const url = `https://app.supabase.com/project/${projectId}/sql/new`;
-  window.open(url, '_blank');
-};
-
 export const copySQLToClipboard = () => {
   navigator.clipboard.writeText(PRODUCTS_TABLE_SQL);
   return true;
+};
+
+// Note: This is for legacy Supabase support. Current system uses mysqli via api.php
+export const openSupabaseSQL = () => {
+  console.warn('Supabase migration is being handled via api.php (mysqli)');
+  return;
 };

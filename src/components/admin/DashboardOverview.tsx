@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,35 +54,26 @@ export const DashboardOverview = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Fetch total users count
-      const { count: usersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const usersResponse = await api.profiles.count();
+      const usersCount = usersResponse.count || 0;
 
       // Fetch form submissions count
-      const { count: formsCount } = await supabase
-        .from('form_submissions')
-        .select('*', { count: 'exact', head: true });
+      const formsResponse = await api.formSubmissions.list({ action: 'count' });
+      const formsCount = formsResponse.count || 0;
 
       // Fetch blog posts count
-      const { count: blogCount } = await supabase
-        .from('blog_posts')
-        .select('*', { count: 'exact', head: true });
+      const blogResponse = await api.blogPosts.list({ action: 'count' });
+      const blogCount = blogResponse.count || 0;
 
       // Fetch recent form submissions for activity
-      const { data: recentForms } = await supabase
-        .from('form_submissions')
-        .select('id, name, email, form_type, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5);
+      const recentFormsResponse = await api.formSubmissions.list({ limit: 5, order: 'desc' });
+      const recentForms = recentFormsResponse.data || [];
 
       // Fetch recent blog posts for activity
-      const { data: recentBlogs } = await supabase
-        .from('blog_posts')
-        .select('id, title, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(3);
+      const recentBlogsResponse = await api.blogPosts.list({ limit: 3, order: 'desc' });
+      const recentBlogs = recentBlogsResponse.data || [];
 
       setStats({
         totalUsers: usersCount || 0,

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Send, Loader2, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/apiClient";
 
 interface StartYourJourneyModalProps {
   children: React.ReactNode;
@@ -39,29 +39,18 @@ const StartYourJourneyModal = ({ children, platform = "Zira Platform" }: StartYo
     setIsSubmitting(true);
 
     try {
-      // Store form submission in Supabase
-      const { error } = await supabase
-        .from('form_submissions')
-        .insert({
-          form_type: 'start_journey',
-          platform: platform,
-          data: formData
-        });
-
-      if (error) throw error;
-
-      // Send notification email
-      const { error: emailError } = await supabase.functions.invoke('send-form-emails', {
-        body: { 
-          type: 'start_journey', 
-          data: formData,
-          platform: platform
-        }
+      // Store form submission
+      const response = await api.formSubmissions.create({
+        form_type: 'start_journey',
+        platform: platform,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        message: `${formData.currentChallenges}\n\nRequirements: ${formData.requirements}`,
+        form_data: formData
       });
 
-      if (emailError) {
-        console.error('Email error:', emailError);
-      }
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: "Thank you for reaching out!",

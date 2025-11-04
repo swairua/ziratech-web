@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Send, Loader2, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/apiClient";
 
 const ContactZiraSMS = () => {
   const { toast } = useToast();
@@ -27,37 +27,20 @@ const ContactZiraSMS = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from('form_submissions')
-        .insert({
-          form_type: 'zira_sms',
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          message: formData.message,
-          form_data: {
-            company: formData.company,
-            business_type: formData.business_type,
-            monthly_volume: formData.monthly_volume
-          }
-        });
+      const response = await api.formSubmissions.create({
+        form_type: 'zira_sms',
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        message: formData.message,
+        form_data: {
+          company: formData.company,
+          business_type: formData.business_type,
+          monthly_volume: formData.monthly_volume
+        }
+      });
 
-      if (error) throw error;
-
-      try {
-        await supabase.functions.invoke('send-form-emails', {
-          body: {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            company: formData.company,
-            message: formData.message,
-            form_type: 'zira_sms'
-          }
-        });
-      } catch (emailError) {
-        console.error('Error calling email function:', emailError);
-      }
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: "SMS Inquiry Sent!",

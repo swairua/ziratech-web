@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar, Clock, Send, Loader2, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/apiClient";
 
 interface DemoBookingModalProps {
   children: React.ReactNode;
@@ -41,56 +41,27 @@ const DemoBookingModal = ({ children, platform = "Zira Homes" }: DemoBookingModa
 
     try {
       // Save to form_submissions table
-      const { error } = await supabase
-        .from('form_submissions')
-        .insert({
-          form_type: 'demo_booking',
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          message: formData.message,
-          form_data: {
-            platform: platform,
-            company: formData.company,
-            role: formData.role,
-            country: formData.country,
-            city: formData.city,
-            business_size: formData.businessSize,
-            current_solution: formData.currentSolution,
-            preferred_time: formData.preferredTime,
-            timezone: formData.timezone,
-            specific_requirements: formData.specificRequirements
-          }
-        });
-
-      if (error) throw error;
-
-      // Send emails via edge function
-      try {
-        const emailResponse = await supabase.functions.invoke('send-form-emails', {
-          body: {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            company: formData.company,
-            message: `Demo request for ${platform}. 
-            Location: ${formData.city}, ${formData.country}
-            Business: ${formData.company} (${formData.businessSize})
-            Role: ${formData.role}
-            Current Solution: ${formData.currentSolution}
-            Preferred time: ${formData.preferredTime} (${formData.timezone})
-            Specific Requirements: ${formData.specificRequirements}
-            Additional message: ${formData.message}`,
-            form_type: 'demo_booking'
-          }
-        });
-
-        if (emailResponse.error) {
-          console.error('Email sending failed:', emailResponse.error);
+      const response = await api.formSubmissions.create({
+        form_type: 'demo_booking',
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        message: formData.message,
+        form_data: {
+          platform: platform,
+          company: formData.company,
+          role: formData.role,
+          country: formData.country,
+          city: formData.city,
+          business_size: formData.businessSize,
+          current_solution: formData.currentSolution,
+          preferred_time: formData.preferredTime,
+          timezone: formData.timezone,
+          specific_requirements: formData.specificRequirements
         }
-      } catch (emailError) {
-        console.error('Error calling email function:', emailError);
-      }
+      });
+
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: "Demo Scheduled!",

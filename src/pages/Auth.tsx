@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { authApi } from "@/lib/authApi";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -14,17 +15,14 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading, refreshSession } = useAuth();
 
   // Check if user is already logged in
   useEffect(() => {
-    const checkUser = async () => {
-      const session = await authApi.getSession();
-      if (session) {
-        navigate('/admin/dashboard');
-      }
-    };
-    checkUser();
-  }, [navigate]);
+    if (!loading && user) {
+      navigate('/admin/dashboard');
+    }
+  }, [loading, user, navigate]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,6 +34,7 @@ const Auth = () => {
 
     try {
       const session = await authApi.login(email, password);
+      await refreshSession();
 
       toast({
         title: "Welcome back!",
@@ -118,6 +117,7 @@ const Auth = () => {
 
     try {
       const session = await authApi.signup(email, password, fullName);
+      await refreshSession();
 
       toast({
         title: "Account Created!",

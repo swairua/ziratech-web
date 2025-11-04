@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Send, Loader2, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/apiClient";
 
 const ContactZiraLock = () => {
   const { toast } = useToast();
@@ -28,38 +28,21 @@ const ContactZiraLock = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from('form_submissions')
-        .insert({
-          form_type: 'zira_lock',
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          message: formData.message,
-          form_data: {
-            company: formData.company,
-            device_type: formData.device_type,
-            volume: formData.volume,
-            use_case: formData.use_case
-          }
-        });
+      const response = await api.formSubmissions.create({
+        form_type: 'zira_lock',
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        message: formData.message,
+        form_data: {
+          company: formData.company,
+          device_type: formData.device_type,
+          volume: formData.volume,
+          use_case: formData.use_case
+        }
+      });
 
-      if (error) throw error;
-
-      try {
-        await supabase.functions.invoke('send-form-emails', {
-          body: {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            company: formData.company,
-            message: formData.message,
-            form_type: 'zira_lock'
-          }
-        });
-      } catch (emailError) {
-        console.error('Error calling email function:', emailError);
-      }
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: "Device Management Inquiry Sent!",

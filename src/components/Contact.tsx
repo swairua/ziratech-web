@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/apiClient";
 const Contact = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,41 +24,18 @@ const Contact = () => {
 
     try {
       // Save to form_submissions table
-      const { error } = await supabase
-        .from('form_submissions')
-        .insert({
-          form_type: 'contact',
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          message: formData.message,
-          form_data: {
-            service_interest: formData.service
-          }
-        });
-
-      if (error) throw error;
-
-      // Send emails via edge function
-      try {
-        const emailResponse = await supabase.functions.invoke('send-form-emails', {
-          body: {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            company: "", // Not collected in this form
-            message: formData.message,
-            form_type: 'contact'
-          }
-        });
-
-        if (emailResponse.error) {
-          console.error('Email sending failed:', emailResponse.error);
+      const response = await api.formSubmissions.create({
+        form_type: 'contact',
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        message: formData.message,
+        form_data: {
+          service_interest: formData.service
         }
-      } catch (emailError) {
-        console.error('Error calling email function:', emailError);
-        // Don't fail the form submission if email fails
-      }
+      });
+
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: "Message Sent!",
