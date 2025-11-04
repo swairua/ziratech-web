@@ -19,12 +19,10 @@ const AdminFeaturedProducts = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Set<string>>(new Set());
+  const [featuredProducts, setFeaturedProducts] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [tableExists, setTableExists] = useState<boolean | null>(null);
-  const [isInitializing, setIsInitializing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -32,7 +30,7 @@ const AdminFeaturedProducts = () => {
     image_url: '',
     category: '',
   });
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
