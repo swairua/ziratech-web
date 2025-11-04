@@ -1,45 +1,93 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-header("Content-Type: application/json");
+// Secure API entry point
+// Load configuration from environment where possible
+$servername = getenv('DB_HOST') ?: 'localhost';
+$username   = getenv('DB_USER') ?: getenv('DB_USERNAME') ?: 'mazaoplu_ziraweb';
+$password   = getenv('DB_PASS') ?: getenv('DB_PASSWORD') ?: 'Sirgeorge.12';
+$dbname     = getenv('DB_NAME') ?: 'mazaoplu_ziraweb';
+$adminToken = getenv('ADMIN_TOKEN') ?: null;
+$allowedOriginsEnv = getenv('ALLOWED_ORIGINS') ?: '*';
+$baseUrl = getenv('BASE_URL') ?: null;
 
-// Handle preflight requests
+$allowedOrigins = array_map('trim', explode(',', $allowedOriginsEnv));
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+if (in_array('*', $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: *");
+} elseif ($origin && in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: " . $origin);
+}
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Admin-Token');
+header('Content-Type: application/json; charset=utf-8');
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-// --- DB CONFIG ---
-$servername = "localhost";
-$username   = "mazaoplu_ziraweb";
-$password   = "Sirgeorge.12";
-$dbname     = "mazaoplu_ziraweb";
-
-// --- DB CONNECTION ---
+// Connect to DB
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     http_response_code(500);
     echo json_encode(["error" => "Database connection failed"]);
     exit;
 }
-
-$conn->set_charset("utf8mb4");
+$conn->set_charset('utf8mb4');
 
 $method = $_SERVER['REQUEST_METHOD'];
-$input  = json_decode(file_get_contents("php://input"), true) ?? [];
-$table  = $_GET['table'] ?? null;
-$action = $_GET['action'] ?? null;
+$input  = json_decode(file_get_contents('php://input'), true) ?? [];
+$table  = isset($_GET['table']) ? $_GET['table'] : null;
+action = isset($_GET['action']) ? $_GET['action'] : null;
 
-if (!$table && !isset($input['drop_table']) && !isset($input['create_table']) && $action !== 'upload_image') {
+$allowed_tables = [
+    'users','user_roles','profiles','activity_logs','blog_categories','blog_posts',
+    'products','form_submissions','company_settings','email_templates','automation_rules',
+    'app_settings','notification_settings'
+];
+
+function is_admin_token_valid($adminToken) {
+    if (!$adminToken) return false;
+    if (!isset($_SERVER['HTTP_X_ADMIN_TOKEN'])) return false;
+    return hash_equals($adminToken, $_SERVER['HTTP_X_ADMIN_TOKEN']);
+}
+
+if (!$table && !isset($input['drop_table']) && !isset($input['create_table']) && ($action !== 'upload_image')) {
     echo json_encode(["error" => "Table name is required"]);
     exit;
 }
 
-/**
- * CREATE TABLE
- */
+// Disallow DDL unless admin token present
+if ((isset($input['create_table']) || isset($input['alter_table']) || isset($input['drop_table'])) && !is_admin_token_valid($adminToken)) {
+    http_response_code(403);
+    echo json_encode(["error" => "Admin token required for schema changes"]);
+    exit;
+}
+
+// Helper for binding params by reference
+function bind_params_ref(&$stmt, $types, $values) {
+    if (empty($types)) return;
+    $refs = [];
+    $refs[] = $types;
+    foreach ($values as $k => $v) {
+        $refs[] = &$values[$k];
+    }
+    call_user_func_array([$stmt, 'bind_param'], $refs);
+}
+
+// CREATE TABLE (admin only)
 if (isset($input['create_table'])) {
+    if (!is_admin_token_valid($adminToken)) {
+        http_response_code(403);
+        echo json_encode(["error" => "Admin token required for create_table"]);
+        exit;
+    }
+    $table = preg_replace('/[^a-z0-9_]/i', '', $table);
+    if (!in_array($table, $allowed_tables)) {
+        http_response_code(400);
+        echo json_encode(["error" => "Table not allowed for creation: $table"]);
+        exit;
+    }
     $columns = $input['columns'] ?? [];
     if (empty($columns)) {
         echo json_encode(["error" => "No columns provided"]);
@@ -47,7 +95,8 @@ if (isset($input['create_table'])) {
     }
     $fields = [];
     foreach ($columns as $name => $type) {
-        $fields[] = "`$name` $type";
+        $nameFiltered = preg_replace('/[^a-z0-9_]/i', '', $name);
+        $fields[] = "`$nameFiltered` " . $conn->real_escape_string($type);
     }
     $sql = "CREATE TABLE IF NOT EXISTS `$table` (" . implode(",", $fields) . ")";
     if ($conn->query($sql)) {
@@ -59,23 +108,24 @@ if (isset($input['create_table'])) {
     exit;
 }
 
-/**
- * ALTER TABLE
- */
+// ALTER TABLE (admin only)
 if (isset($input['alter_table'])) {
+    if (!is_admin_token_valid($adminToken)) {
+        http_response_code(403);
+        echo json_encode(["error" => "Admin token required for alter_table"]);
+        exit;
+    }
     $actions = $input['actions'] ?? [];
     if (empty($actions)) {
         echo json_encode(["error" => "No ALTER actions provided"]);
         exit;
     }
-
     $alter_parts = [];
     foreach ($actions as $action_item) {
         $type = strtoupper($action_item['type']);
-        $name = $action_item['name'] ?? '';
-        $definition = $action_item['definition'] ?? '';
-        $new_name = $action_item['new_name'] ?? '';
-
+        $name = preg_replace('/[^a-z0-9_]/i', '', $action_item['name'] ?? '');
+        $definition = $conn->real_escape_string($action_item['definition'] ?? '');
+        $new_name = preg_replace('/[^a-z0-9_]/i', '', $action_item['new_name'] ?? '');
         switch ($type) {
             case 'ADD':
                 $alter_parts[] = "ADD COLUMN `$name` $definition";
@@ -95,7 +145,12 @@ if (isset($input['alter_table'])) {
                 exit;
         }
     }
-
+    $table = preg_replace('/[^a-z0-9_]/i', '', $table);
+    if (!in_array($table, $allowed_tables)) {
+        http_response_code(400);
+        echo json_encode(["error" => "Table not allowed for alter: $table"]);
+        exit;
+    }
     $sql = "ALTER TABLE `$table` " . implode(", ", $alter_parts);
     if ($conn->query($sql)) {
         echo json_encode(["success" => true, "message" => "Table altered successfully"]);
@@ -106,11 +161,19 @@ if (isset($input['alter_table'])) {
     exit;
 }
 
-/**
- * DROP TABLE
- */
+// DROP TABLE (admin only)
 if (isset($input['drop_table'])) {
-    $tableToDrop = $input['drop_table'];
+    if (!is_admin_token_valid($adminToken)) {
+        http_response_code(403);
+        echo json_encode(["error" => "Admin token required for drop_table"]);
+        exit;
+    }
+    $tableToDrop = preg_replace('/[^a-z0-9_]/i', '', $input['drop_table']);
+    if (!in_array($tableToDrop, $allowed_tables)) {
+        http_response_code(400);
+        echo json_encode(["error" => "Table not allowed for drop: $tableToDrop"]);
+        exit;
+    }
     $sql = "DROP TABLE IF EXISTS `$tableToDrop`";
     if ($conn->query($sql)) {
         echo json_encode(["success" => true, "message" => "Table dropped successfully"]);
@@ -121,98 +184,112 @@ if (isset($input['drop_table'])) {
     exit;
 }
 
-/**
- * CRUD + IMAGE UPLOAD
- */
 switch ($method) {
     case 'GET':
-        $id = $_GET['id'] ?? null;
+        if (!in_array($table, $allowed_tables)) {
+            http_response_code(400);
+            echo json_encode(["error" => "Table not allowed: $table"]);
+            break;
+        }
+        if ($action === 'count') {
+            $sql = "SELECT COUNT(*) as count FROM `$table`";
+            $result = $conn->query($sql);
+            $row = $result ? $result->fetch_assoc() : null;
+            echo json_encode(["count" => intval($row['count'] ?? 0)]);
+            break;
+        }
+        if ($action === 'featured' && $table === 'products') {
+            $stmt = $conn->prepare("SELECT * FROM `products` WHERE is_featured = 1 ORDER BY featured_order ASC");
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $data = [];
+            while ($row = $res->fetch_assoc()) $data[] = $row;
+            echo json_encode(["data" => $data]);
+            break;
+        }
+        $id = isset($_GET['id']) ? intval($_GET['id']) : null;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : null;
         $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
-        $order = $_GET['order'] ?? 'ASC';
-        $order = ($order === 'desc' || $order === 'DESC') ? 'DESC' : 'ASC';
+        $order = isset($_GET['order']) && (strtolower($_GET['order']) === 'desc') ? 'DESC' : 'ASC';
 
         $sql = "SELECT * FROM `$table`";
-        $whereConditions = [];
+        $whereClauses = [];
+        $types = '';
+        $values = [];
         if ($id) {
-            $whereConditions[] = "id=" . intval($id);
+            $whereClauses[] = "id = ?";
+            $types .= 'i';
+            $values[] = $id;
         }
         $allowedFilters = ['user_id', 'status', 'form_type', 'category', 'slug', 'setting_key', 'email'];
         foreach ($allowedFilters as $field) {
             if (isset($_GET[$field])) {
-                $value = $conn->real_escape_string($_GET[$field]);
-                $whereConditions[] = "`$field`='$value'";
+                $whereClauses[] = "`$field` = ?";
+                $types .= 's';
+                $values[] = $_GET[$field];
             }
         }
-        if (!empty($whereConditions)) {
-            $sql .= " WHERE " . implode(" AND ", $whereConditions);
+        if (!empty($whereClauses)) {
+            $sql .= ' WHERE ' . implode(' AND ', $whereClauses);
         }
         $sql .= " ORDER BY created_at $order";
         if ($limit) {
-            $sql .= " LIMIT $limit";
+            $sql .= " LIMIT ?";
+            $types .= 'i';
+            $values[] = $limit;
             if ($offset > 0) {
-                $sql .= " OFFSET $offset";
+                $sql .= " OFFSET ?";
+                $types .= 'i';
+                $values[] = $offset;
             }
         }
-
-        $result = $conn->query($sql);
-        $data = [];
-        if ($result) {
-            while ($row = $result->fetch_assoc()) {
-                $data[] = $row;
-            }
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            if (!empty($types)) bind_params_ref($stmt, $types, $values);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $data = [];
+            while ($row = $res->fetch_assoc()) $data[] = $row;
+            echo json_encode(["data" => $data]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["error" => $conn->error]);
         }
-        echo json_encode(["data" => $data]);
         break;
 
     case 'POST':
-        // Image upload endpoint
         if ($action === 'upload_image') {
             if (!isset($_FILES['file'])) {
                 http_response_code(400);
                 echo json_encode(["error" => "No file provided"]);
                 exit;
             }
-
             $file = $_FILES['file'];
             $fileName = $file['name'];
             $fileTmp = $file['tmp_name'];
             $fileSize = $file['size'];
             $fileError = $file['error'];
-
             if ($fileError !== UPLOAD_ERR_OK) {
                 http_response_code(400);
-                $errorMessages = [
-                    UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize',
-                    UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE',
-                    UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
-                    UPLOAD_ERR_NO_FILE => 'No file was uploaded',
-                    UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
-                    UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
-                    UPLOAD_ERR_EXTENSION => 'File upload stopped by extension'
-                ];
-                echo json_encode(["error" => $errorMessages[$fileError] ?? "Unknown upload error"]);
+                echo json_encode(["error" => "File upload error code: $fileError"]);
                 exit;
             }
-
             $maxSize = 5 * 1024 * 1024;
             if ($fileSize > $maxSize) {
                 http_response_code(400);
                 echo json_encode(["error" => "File size exceeds 5MB limit"]);
                 exit;
             }
-
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mimeType = finfo_file($finfo, $fileTmp);
             finfo_close($finfo);
-            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             if (!in_array($mimeType, $allowedMimes)) {
                 http_response_code(400);
-                echo json_encode(["error" => "Invalid file type. Only images are allowed."]); 
+                echo json_encode(["error" => "Invalid file type. Only JPEG/PNG/GIF/WEBP allowed."]);
                 exit;
             }
-
-            $uploadsDir = __DIR__ . '/assets';
+            $uploadsDir = __DIR__ . '/uploads';
             if (!is_dir($uploadsDir)) {
                 if (!mkdir($uploadsDir, 0755, true)) {
                     http_response_code(500);
@@ -220,19 +297,22 @@ switch ($method) {
                     exit;
                 }
             }
-
             $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-            $safeFileName = 'img_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $fileExt;
+            $safeFileName = 'img_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $fileExt;
             $targetPath = $uploadsDir . '/' . $safeFileName;
-
             if (!move_uploaded_file($fileTmp, $targetPath)) {
                 http_response_code(500);
                 echo json_encode(["error" => "Failed to save file"]);
                 exit;
             }
-
             chmod($targetPath, 0644);
-            $fileUrl = 'https://zira-tech.com/assets/' . $safeFileName;
+            if ($baseUrl) {
+                $fileUrl = rtrim($baseUrl, '/') . '/uploads/' . $safeFileName;
+            } else {
+                $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                $fileUrl = $scheme . '://' . $host . '/uploads/' . $safeFileName;
+            }
             echo json_encode([
                 "success" => true,
                 "url" => $fileUrl,
@@ -243,7 +323,6 @@ switch ($method) {
             exit;
         }
 
-        // Regular INSERT (exclude special keys)
         $excludeKeys = ['create_table', 'alter_table', 'drop_table', 'action'];
         $inputData = array_diff_key($input, array_flip($excludeKeys));
         if (empty($inputData)) {
@@ -251,57 +330,115 @@ switch ($method) {
             echo json_encode(["error" => "No data provided"]);
             break;
         }
+        if (!in_array($table, $allowed_tables)) {
+            http_response_code(400);
+            echo json_encode(["error" => "Table not allowed: $table"]);
+            break;
+        }
         $keys = array_keys($inputData);
-        $values = array_map(function($v) use ($conn) {
-            return $conn->real_escape_string(is_array($v) || is_object($v) ? json_encode($v) : $v);
-        }, array_values($inputData));
-        $sql = "INSERT INTO `$table` (`" . implode("`,`", $keys) . "`) VALUES ('" . implode("','", $values) . "')";
-        if ($conn->query($sql)) {
-            echo json_encode(["success" => true, "id" => $conn->insert_id]);
-        } else {
+        $placeholders = array_fill(0, count($keys), '?');
+        $sql = "INSERT INTO `$table` (`" . implode('`,`', array_map(function($k){return preg_replace('/[^a-z0-9_]/i', '', $k);}, $keys)) . "`) VALUES (" . implode(',', $placeholders) . ")";
+        $types = '';
+        $values = [];
+        foreach ($inputData as $v) {
+            if (is_int($v)) $types .= 'i';
+            elseif (is_float($v) || is_double($v)) $types .= 'd';
+            else $types .= 's';
+            $values[] = is_array($v) || is_object($v) ? json_encode($v) : $v;
+        }
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
             http_response_code(500);
             echo json_encode(["error" => $conn->error]);
+            break;
+        }
+        bind_params_ref($stmt, $types, $values);
+        if ($stmt->execute()) {
+            echo json_encode(["success" => true, "id" => $stmt->insert_id]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["error" => $stmt->error]);
         }
         break;
 
     case 'PUT':
-        $id = $_GET['id'] ?? null;
-        if (!$id) {
+        $id = isset($_GET['id']) ? intval($_GET['id']) : null;
+        if (!$id && !isset($_GET['user_id'])) {
             http_response_code(400);
             echo json_encode(["error" => "ID required for update"]);
             break;
         }
+        if (!in_array($table, $allowed_tables)) {
+            http_response_code(400);
+            echo json_encode(["error" => "Table not allowed: $table"]);
+            break;
+        }
         $updates = [];
+        $types = '';
+        $values = [];
         foreach ($input as $key => $value) {
-            $updates[] = "`$key`='" . $conn->real_escape_string(is_array($value) || is_object($value) ? json_encode($value) : $value) . "'";
+            if ($key === 'action') continue;
+            $k = preg_replace('/[^a-z0-9_]/i', '', $key);
+            $updates[] = "`$k` = ?";
+            if (is_int($value)) $types .= 'i';
+            elseif (is_float($value) || is_double($value)) $types .= 'd';
+            else $types .= 's';
+            $values[] = is_array($value) || is_object($value) ? json_encode($value) : $value;
         }
         if (empty($updates)) {
             http_response_code(400);
             echo json_encode(["error" => "No data to update"]);
             break;
         }
-        $sql = "UPDATE `$table` SET " . implode(",", $updates) . " WHERE id=" . intval($id);
-        if ($conn->query($sql)) {
+        if (isset($_GET['user_id'])) {
+            $whereClause = "user_id = ?";
+            $types .= 'i';
+            $values[] = intval($_GET['user_id']);
+        } else {
+            $whereClause = "id = ?";
+            $types .= 'i';
+            $values[] = intval($id);
+        }
+        $sql = "UPDATE `$table` SET " . implode(',', $updates) . " WHERE " . $whereClause;
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) { http_response_code(500); echo json_encode(["error" => $conn->error]); break; }
+        bind_params_ref($stmt, $types, $values);
+        if ($stmt->execute()) {
             echo json_encode(["success" => true]);
         } else {
             http_response_code(500);
-            echo json_encode(["error" => $conn->error]);
+            echo json_encode(["error" => $stmt->error]);
         }
         break;
 
     case 'DELETE':
-        $id = $_GET['id'] ?? null;
-        if (!$id) {
+        $id = isset($_GET['id']) ? intval($_GET['id']) : null;
+        if (!$id && !isset($_GET['user_id'])) {
             http_response_code(400);
             echo json_encode(["error" => "ID required for delete"]);
             break;
         }
-        $sql = "DELETE FROM `$table` WHERE id=" . intval($id);
-        if ($conn->query($sql)) {
+        if (!in_array($table, $allowed_tables)) {
+            http_response_code(400);
+            echo json_encode(["error" => "Table not allowed: $table"]);
+            break;
+        }
+        if (isset($_GET['user_id'])) {
+            $sql = "DELETE FROM `$table` WHERE user_id = ?";
+            $stmt = $conn->prepare($sql);
+            $uid = intval($_GET['user_id']);
+            $stmt->bind_param('i', $uid);
+        } else {
+            $sql = "DELETE FROM `$table` WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            $iid = intval($id);
+            $stmt->bind_param('i', $iid);
+        }
+        if ($stmt->execute()) {
             echo json_encode(["success" => true]);
         } else {
             http_response_code(500);
-            echo json_encode(["error" => $conn->error]);
+            echo json_encode(["error" => $stmt->error]);
         }
         break;
 

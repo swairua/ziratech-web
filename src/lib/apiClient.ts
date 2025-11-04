@@ -1,4 +1,4 @@
-const API_BASE = "https://zira-tech.com/api.php";
+const API_BASE = '/api.php';
 
 interface ApiResponse<T> {
   data?: T;
