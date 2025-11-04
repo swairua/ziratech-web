@@ -394,6 +394,23 @@ const AdminFeaturedProducts = () => {
                       className="hidden"
                       disabled={isUploading}
                     />
+
+                    {/* Manual URL fallback */}
+                    <div className="grid gap-2">
+                      <Label htmlFor="imageUrl" className="text-xs text-gray-600">Or paste an image URL</Label>
+                      <Input
+                        id="imageUrl"
+                        placeholder="https://.../image.jpg"
+                        value={formData.image_url}
+                        onChange={(e) => {
+                          const url = e.target.value;
+                          setFormData(prev => ({ ...prev, image_url: url }));
+                          setImagePreview(url || null);
+                        }}
+                      />
+                      <p className="text-xs text-gray-500">If upload fails, paste a direct image URL. We will store this URL.</p>
+                    </div>
+
                     {isUploading && (
                       <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                         <Loader className="h-4 w-4 animate-spin" />
