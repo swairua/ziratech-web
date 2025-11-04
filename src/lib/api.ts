@@ -14,21 +14,29 @@ export interface Product {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  let data;
-
+  // Read response body as text once to avoid "body stream already read" error
+  let responseText = '';
   try {
-    data = await response.json();
-  } catch (parseError) {
-    console.error('Failed to parse response as JSON:', parseError);
-    throw new Error(`Invalid JSON response from API (${response.status})`);
+    responseText = await response.text();
+  } catch (readError) {
+    throw new Error(`Failed to read response: ${readError instanceof Error ? readError.message : 'Unknown error'}`);
   }
 
   if (!response.ok) {
-    throw new Error(`API Error ${response.status}: ${data?.error || 'Unknown error'}`);
+    console.error(`API Error ${response.status}:`, responseText);
+    throw new Error(`API Error: ${response.status}`);
   }
 
-  if (!data) {
+  if (!responseText) {
     throw new Error('Empty response from API');
+  }
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (parseError) {
+    console.error('Failed to parse response as JSON:', parseError);
+    throw new Error(`Invalid JSON response from API (${response.status})`);
   }
 
   if (data.error) {
