@@ -19,6 +19,11 @@ async function makeRequest(method, tableName, payload = null) {
       },
     };
 
+    // Attach admin token header when present (required for DDL operations)
+    if (ADMIN_TOKEN) {
+      options.headers['X-Admin-Token'] = ADMIN_TOKEN;
+    }
+
     if (payload) {
       options.body = JSON.stringify(payload);
     }
