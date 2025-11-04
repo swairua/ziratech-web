@@ -14,10 +14,25 @@ export interface Product {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  const data = await response.json();
+  const responseText = await response.text();
 
-  if (!response.ok || data.error) {
-    throw new Error(data.error || `API Error: ${response.status}`);
+  if (!response.ok) {
+    throw new Error(`API Error ${response.status}: ${responseText || 'Unknown error'}`);
+  }
+
+  if (!responseText) {
+    throw new Error('Empty response from API');
+  }
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (err) {
+    throw new Error(`Invalid JSON response: ${responseText}`);
+  }
+
+  if (data.error) {
+    throw new Error(data.error);
   }
 
   return data;
