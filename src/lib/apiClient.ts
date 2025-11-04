@@ -47,20 +47,32 @@ async function apiCall<T>(
       options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url.toString(), options);
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), options);
+    } catch (fetchErr) {
+      console.error('Fetch failed:', fetchErr);
+      return { error: `API call failed: ${fetchErr instanceof Error ? fetchErr.message : 'Network error'}` };
+    }
 
-    // Get headers BEFORE reading body (headers don't consume the stream)
+    // Get headers BEFORE attempting to read body (headers don't consume the stream)
     const status = response.status;
     const ok = response.ok;
     const contentType = response.headers.get('content-type') || '';
 
-    // Read response body ONCE and IMMEDIATELY to avoid stream consumption issues
-    let text: string;
+    // Read response body with fallback for stream consumption issues
+    let text: string = '';
     try {
       text = await response.text();
-    } catch (e) {
-      console.error('Failed to read response body:', e);
-      return { error: `API Error: ${status}` };
+    } catch (readErr) {
+      // Body stream already consumed by middleware/interceptor - gracefully handle
+      console.warn('Could not read response body (stream consumed):', readErr);
+      // Return error based on status code
+      if (!ok) {
+        return { error: `API Error: ${status}` };
+      }
+      // If status is OK but we can't read body, treat as success with empty data
+      return { data: null };
     }
 
     const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
