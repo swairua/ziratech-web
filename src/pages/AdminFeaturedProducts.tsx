@@ -183,26 +183,6 @@ const AdminFeaturedProducts = () => {
     setShowForm(false);
   };
 
-  const handleCreateTable = async () => {
-    try {
-      setIsInitializing(true);
-      const result = await initializeProductsTable();
-
-      if (result.success) {
-        toast.success('Products table created successfully!');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await checkTableAndFetchProducts();
-      } else {
-        toast.error(result.message || 'Failed to create table. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error creating table:', error);
-      toast.error('An error occurred while creating the table');
-    } finally {
-      setIsInitializing(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
