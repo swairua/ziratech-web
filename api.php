@@ -289,36 +289,54 @@ switch ($method) {
                 echo json_encode(["error" => "Invalid file type. Only JPEG/PNG/GIF/WEBP allowed."]);
                 exit;
             }
-            $uploadsDir = __DIR__ . '/uploads';
-            if (!is_dir($uploadsDir)) {
-                if (!mkdir($uploadsDir, 0755, true)) {
+            // Store uploads outside webroot for safety
+            $storageDir = __DIR__ . '/storage/uploads';
+            if (!is_dir($storageDir)) {
+                if (!mkdir($storageDir, 0755, true)) {
                     http_response_code(500);
-                    echo json_encode(["error" => "Failed to create uploads directory"]);
+                    echo json_encode(["error" => "Failed to create storage uploads directory"]);
                     exit;
                 }
             }
+
             $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
             $safeFileName = 'img_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $fileExt;
-            $targetPath = $uploadsDir . '/' . $safeFileName;
+            $targetPath = $storageDir . '/' . $safeFileName;
+
             if (!move_uploaded_file($fileTmp, $targetPath)) {
                 http_response_code(500);
                 echo json_encode(["error" => "Failed to save file"]);
                 exit;
             }
+
+            // Restrict permissions
             chmod($targetPath, 0644);
+
+            // Generate time-limited signed URL for access
+            $expiry = time() + (60 * 60 * 24 * 7); // 7 days
+            if ($adminToken) {
+                $token = hash_hmac('sha256', $safeFileName . '|' . $expiry, $adminToken);
+            } else {
+                // Admin token not set - require setting ADMIN_TOKEN in env for secure access
+                http_response_code(500);
+                echo json_encode(["error" => "Server missing ADMIN_TOKEN env var. Set ADMIN_TOKEN to enable secure file access."]);
+                exit;
+            }
+
             if ($baseUrl) {
-                $fileUrl = rtrim($baseUrl, '/') . '/uploads/' . $safeFileName;
+                $fileUrl = rtrim($baseUrl, '/') . '/serve_upload.php?file=' . urlencode($safeFileName) . '&expires=' . $expiry . '&token=' . $token;
             } else {
                 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-                $fileUrl = $scheme . '://' . $host . '/uploads/' . $safeFileName;
+                $fileUrl = $scheme . '://' . $host . '/serve_upload.php?file=' . urlencode($safeFileName) . '&expires=' . $expiry . '&token=' . $token;
             }
+
+            // Return filename and signed URL. Do not expose server filesystem path.
             echo json_encode([
                 "success" => true,
                 "url" => $fileUrl,
                 "image_url" => $fileUrl,
-                "filename" => $safeFileName,
-                "path" => $targetPath
+                "filename" => $safeFileName
             ]);
             exit;
         }
