@@ -126,7 +126,7 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const usersJson = await handleResponse<any>(response);
+    const usersJson = await handleResponse<any>(response.clone());
     const users: any[] = Array.isArray(usersJson)
       ? usersJson
       : Array.isArray(usersJson?.data)
@@ -157,7 +157,7 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const rolesJson = await handleResponse<any>(roleResponse);
+    const rolesJson = await handleResponse<any>(roleResponse.clone());
     const roles: any[] = Array.isArray(rolesJson)
       ? rolesJson
       : Array.isArray(rolesJson?.data)
@@ -274,7 +274,7 @@ export const authApi = {
       }),
     });
 
-    const userResult = await handleResponse<{ id: number }>(createResponse);
+    const userResult = await handleResponse<{ id: number }>(createResponse.clone());
 
     if (!userResult.id) {
       throw new Error('Failed to create user');
