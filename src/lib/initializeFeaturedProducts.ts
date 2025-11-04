@@ -1,13 +1,11 @@
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 
 export const initializeFeaturedProductsTable = async () => {
   try {
     // Test if products table exists by trying to query it
-    const { error: checkError } = await supabase
-      .from('products')
-      .select('count(*)', { count: 'exact', head: true });
+    const response = await api.products.count();
 
-    if (!checkError) {
+    if (!response.error) {
       return { success: true, message: 'Products table already exists' };
     }
 
@@ -78,23 +76,14 @@ CREATE POLICY "Allow admins to manage products" ON products
 
 export const checkIfProductsTableExists = async (): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('products')
-      .select('id', { count: 'exact', head: true });
+    const response = await api.products.list({ limit: 1 });
 
-    if (error) {
-      console.debug('Products table check error:', {
-        code: error.code,
-        message: error.message
-      });
-    }
-
-    // If error code is PGRST116 or message contains "relation" or "products", table doesn't exist
-    if (error?.code === 'PGRST116' || error?.message?.includes('relation') || error?.message?.includes('products')) {
+    if (response.error) {
+      console.debug('Products table check error:', response.error);
       return false;
     }
 
-    return !error;
+    return true;
   } catch (err) {
     console.error('Unexpected error checking products table:', err);
     return false;
@@ -112,42 +101,9 @@ export const initializeProductsTable = async (): Promise<{ success: boolean; mes
       };
     }
 
-    // Call the edge function to create the table
-    const { data, error } = await supabase.functions.invoke('init-featured-products', {
-      method: 'POST',
-    });
-
-    if (error) {
-      console.error(
-        'Error invoking init function:',
-        JSON.stringify({
-          message: error.message || 'Unknown error'
-        }, null, 2)
-      );
-      return {
-        success: false,
-        message: error.message || 'Failed to initialize products table. Please try manual setup.',
-      };
-    }
-
-    if (data?.success) {
-      // Wait for the table to be created
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Verify it was created
-      const exists = await checkIfProductsTableExists();
-      if (exists) {
-        return {
-          success: true,
-          message: 'Products table created successfully!',
-        };
-      }
-    }
-
-    // If we get here, the initialization had an issue
     return {
       success: false,
-      message: data?.message || 'Could not create table. Please use manual setup.',
+      message: 'Products table not found. Using api.php (mysqli) for database operations.',
     };
   } catch (err) {
     console.error(
@@ -159,7 +115,7 @@ export const initializeProductsTable = async (): Promise<{ success: boolean; mes
     );
     return {
       success: false,
-      message: err instanceof Error ? err.message : 'An unexpected error occurred. Please try manual setup.',
+      message: err instanceof Error ? err.message : 'An unexpected error occurred.',
     };
   }
 };
