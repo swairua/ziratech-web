@@ -36,44 +36,33 @@ async function apiCall<T>(
 
     const response = await fetch(url.toString(), options);
 
-    // Check content type early
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType && contentType.includes('application/json');
-
-    let data: any;
-
-    // Try to parse as JSON if content type suggests it
-    if (isJson) {
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        return { error: 'Failed to parse API response' };
-      }
-    } else {
-      // For non-JSON responses, try to get text
-      try {
-        const responseText = await response.text();
-        if (responseText) {
-          try {
-            data = JSON.parse(responseText);
-          } catch {
-            console.error('Could not parse response as JSON:', responseText);
-            return { error: 'Invalid response format from API' };
-          }
-        } else {
-          return { error: 'Empty response from API' };
-        }
-      } catch (readError) {
-        console.error('Failed to read response:', readError);
-        return { error: `API Error: ${response.status}` };
-      }
+    // Read response body as text once (avoid "body stream already read" error)
+    let responseText = '';
+    try {
+      responseText = await response.text();
+    } catch (readError) {
+      console.error('Failed to read response body:', readError);
+      return { error: `API Error: ${response.status}` };
     }
 
-    // Check if response is ok
+    // Check if response is ok first
     if (!response.ok) {
-      console.error(`API Error ${response.status}:`, data);
+      console.error(`API Error ${response.status}:`, responseText);
       return { error: `API Error: ${response.status}` };
+    }
+
+    // Handle empty response
+    if (!responseText) {
+      return { error: 'Empty response from API' };
+    }
+
+    // Parse JSON from the text we already read
+    let data: any;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError, 'Response text:', responseText);
+      return { error: 'Failed to parse API response' };
     }
 
     if (data.error) {
