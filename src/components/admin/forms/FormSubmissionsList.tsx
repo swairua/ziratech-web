@@ -66,36 +66,53 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
     try {
       setLoading(true);
 
-      const params: Record<string, any> = {};
-
-      // Apply form type filter
-      if (formType !== 'all') {
-        if (formType === 'business') {
-          params.form_types = ['demo_booking', 'start_journey', 'partnership', 'support'].join(',');
-        } else if (formType === 'platforms') {
-          params.form_types = ['zira_web', 'zira_lock', 'zira_sms'].join(',');
-        } else {
-          params.form_type = formType;
-        }
-      }
-
-      // Apply search filter
-      if (searchQuery) {
-        params.search = searchQuery;
-      }
-
-      // Apply status filter
-      if (statusFilter !== 'all') {
-        params.status = statusFilter;
-      }
-
-      const response = await api.formSubmissions.list(params);
+      const response = await api.formSubmissions.list();
 
       if (response.error) {
         throw new Error(response.error);
       }
 
-      setSubmissions(response.data || []);
+      let submissions = response.data || [];
+
+      // Apply form type filter on client side
+      if (formType !== 'all') {
+        if (formType === 'business') {
+          submissions = submissions.filter((s: any) =>
+            ['demo_booking', 'start_journey', 'partnership', 'support'].includes(s.form_type)
+          );
+        } else if (formType === 'platforms') {
+          submissions = submissions.filter((s: any) =>
+            ['zira_web', 'zira_lock', 'zira_sms'].includes(s.form_type)
+          );
+        } else {
+          submissions = submissions.filter((s: any) => s.form_type === formType);
+        }
+      }
+
+      // Apply search filter on client side
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        submissions = submissions.filter((s: any) =>
+          s.name?.toLowerCase().includes(query) ||
+          s.email?.toLowerCase().includes(query) ||
+          s.company?.toLowerCase().includes(query) ||
+          s.data?.name?.toLowerCase().includes(query) ||
+          s.data?.email?.toLowerCase().includes(query) ||
+          s.data?.company?.toLowerCase().includes(query)
+        );
+      }
+
+      // Apply status filter on client side
+      if (statusFilter !== 'all') {
+        submissions = submissions.filter((s: any) => s.status === statusFilter);
+      }
+
+      // Sort by created_at descending
+      submissions.sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setSubmissions(submissions);
     } catch (error: any) {
       toast({
         variant: "destructive",
