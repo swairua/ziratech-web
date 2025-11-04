@@ -16,8 +16,9 @@ export interface Product {
 async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
+  const contentType = response.headers.get('content-type') || '';
 
-  // Read full response body as text first to avoid clone errors
+  // Read full response body as text - only read once
   let text: string;
   try {
     text = await response.text();
@@ -26,7 +27,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
     throw new Error(`API Error: ${status}`);
   }
 
-  const contentType = response.headers.get('content-type') || '';
   const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
 
   // If not JSON, detect PHP/HTML and return helpful error
