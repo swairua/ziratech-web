@@ -113,12 +113,15 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
 
   const handleStatusUpdate = async (submissionId: string, newStatus: string) => {
     try {
+      const session = await authApi.getSession();
+      const userId = session?.user.id?.toString() || 'unknown';
+
       const { error } = await supabase
         .from('form_submissions')
-        .update({ 
+        .update({
           status: newStatus,
           handled_at: new Date().toISOString(),
-          handled_by: (await supabase.auth.getUser()).data.user?.id
+          handled_by: userId
         })
         .eq('id', submissionId);
 
@@ -130,7 +133,7 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
         title: "Success",
         description: `Submission marked as ${newStatus}`,
       });
-      
+
       fetchSubmissions();
       onUpdate?.();
     } catch (error: any) {
