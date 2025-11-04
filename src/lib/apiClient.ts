@@ -49,11 +49,12 @@ async function apiCall<T>(
     const status = response.status;
     const ok = response.ok;
 
+    // Read from the cloned response so the original stream remains untouched for other consumers
     let text: string;
     try {
-      text = await response.text();
+      text = await safeResponse.text();
     } catch (e) {
-      console.error('Failed to read response body:', e);
+      console.error('Failed to read response body from cloned response:', e);
       return { error: `API Error: ${response.status}` };
     }
 
