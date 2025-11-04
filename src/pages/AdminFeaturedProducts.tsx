@@ -106,7 +106,7 @@ const AdminFeaturedProducts = () => {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('Product name is required');
       return;
@@ -114,48 +114,34 @@ const AdminFeaturedProducts = () => {
 
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from('products')
-          .update({
-            name: formData.name,
-            description: formData.description || null,
-            price: formData.price ? parseFloat(formData.price) : null,
-            image_url: formData.image_url || null,
-            category: formData.category || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingId);
+        await productsAPI.update(editingId, {
+          name: formData.name,
+          description: formData.description || undefined,
+          price: formData.price ? parseFloat(formData.price) : undefined,
+          image_url: formData.image_url || undefined,
+          category: formData.category || undefined,
+        });
 
-        if (error) {
-          toast.error('Failed to update product');
-        } else {
-          toast.success('Product updated successfully');
-          setEditingId(null);
-          resetForm();
-          fetchProducts();
-        }
+        toast.success('Product updated successfully');
+        setEditingId(null);
+        resetForm();
+        fetchProducts();
       } else {
-        const { error } = await supabase
-          .from('products')
-          .insert({
-            name: formData.name,
-            description: formData.description || null,
-            price: formData.price ? parseFloat(formData.price) : null,
-            image_url: formData.image_url || null,
-            category: formData.category || null,
-            is_featured: false,
-          });
+        await productsAPI.create({
+          name: formData.name,
+          description: formData.description || undefined,
+          price: formData.price ? parseFloat(formData.price) : undefined,
+          image_url: formData.image_url || undefined,
+          category: formData.category || undefined,
+          is_featured: false,
+        });
 
-        if (error) {
-          toast.error('Failed to create product');
-        } else {
-          toast.success('Product created successfully');
-          resetForm();
-          fetchProducts();
-        }
+        toast.success('Product created successfully');
+        resetForm();
+        fetchProducts();
       }
     } catch (err) {
-      toast.error('An error occurred');
+      toast.error('Failed to save product');
       console.error(err);
     }
   };
