@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Badge } from '@/components/ui/badge';
@@ -50,66 +50,93 @@ const BlogPost = () => {
   const fetchBlogPost = async () => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('slug', slug)
-        .eq('status', 'published')
-        .single();
 
-      if (error) throw error;
+      // Fetch post by slug
+      const response = await api.blogPosts.getBySlug(slug!);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      const data = response.data;
+
+      if (!data) {
+        throw new Error('Blog post not found');
+      }
 
       // Fetch author and category separately
-      const [authorData, categoryData] = await Promise.all([
-        data.author_id ? supabase.from('profiles').select('user_id, full_name').eq('user_id', data.author_id).single() : null,
-        data.category_id ? supabase.from('blog_categories').select('id, name, color').eq('id', data.category_id).single() : null
-      ]);
+      let authorData: any = null;
+      let categoryData: any = null;
+
+      if (data.author_id) {
+        const authorResponse = await api.profiles.get(data.author_id);
+        if (!authorResponse.error) {
+          authorData = authorResponse.data;
+        }
+      }
+
+      if (data.category_id) {
+        const categoryResponse = await api.blogCategories.get(data.category_id);
+        if (!categoryResponse.error) {
+          categoryData = categoryResponse.data;
+        }
+      }
 
       const formattedPost = {
         ...data,
-        author: authorData?.data || { full_name: 'Anonymous' },
-        category: categoryData?.data
+        author: authorData || { full_name: 'Anonymous' },
+        category: categoryData
       };
 
       setPost(formattedPost);
 
       // Update view count
-      await supabase
-        .from('blog_posts')
-        .update({ view_count: (data.view_count || 0) + 1 })
-        .eq('id', data.id);
+      try {
+        await api.blogPosts.incrementViewCount(data.id);
+      } catch (err) {
+        // View count update failed, but don't stop the page from loading
+        console.log('Failed to update view count');
+      }
 
       // Fetch related posts
       if (data.category_id) {
-        const { data: related } = await supabase
-          .from('blog_posts')
-          .select('*')
-          .eq('status', 'published')
-          .eq('category_id', data.category_id)
-          .neq('id', data.id)
-          .limit(3);
+        const postsResponse = await api.blogPosts.list();
+        if (!postsResponse.error) {
+          let related = postsResponse.data || [];
+          // Filter by category and exclude current post
+          related = related.filter((p: any) =>
+            p.category_id === data.category_id &&
+            p.id !== data.id &&
+            p.status === 'published'
+          );
+          related = related.slice(0, 3);
 
-        if (related && related.length > 0) {
-          const relatedAuthorIds = [...new Set(related.map(post => post.author_id).filter(Boolean))];
-          const [relatedAuthorsData] = await Promise.all([
-            relatedAuthorIds.length > 0 ? supabase.from('profiles').select('user_id, full_name').in('user_id', relatedAuthorIds) : { data: [] }
-          ]);
+          if (related && related.length > 0) {
+            const relatedAuthorIds = [...new Set(related.map((post: any) => post.author_id).filter(Boolean))];
 
-          const relatedAuthorsMap = new Map<string, any>();
-          
-          relatedAuthorsData.data?.forEach(author => {
-            if (author?.user_id) {
-              relatedAuthorsMap.set(author.user_id, author);
+            let relatedAuthorsData: any[] = [];
+            if (relatedAuthorIds.length > 0) {
+              const authResponse = await api.profiles.list();
+              if (!authResponse.error) {
+                relatedAuthorsData = authResponse.data || [];
+              }
             }
-          });
 
-          const formattedRelated = related.map(post => ({
-            ...post,
-            author: relatedAuthorsMap.get(post.author_id) || { full_name: 'Anonymous' },
-            category: categoryData?.data || undefined
-          }));
-          setRelatedPosts(formattedRelated);
+            const relatedAuthorsMap = new Map<string, any>();
+
+            relatedAuthorsData?.forEach((author: any) => {
+              if (author?.user_id) {
+                relatedAuthorsMap.set(author.user_id, author);
+              }
+            });
+
+            const formattedRelated = related.map((post: any) => ({
+              ...post,
+              author: relatedAuthorsMap.get(post.author_id) || { full_name: 'Anonymous' },
+              category: categoryData || undefined
+            }));
+            setRelatedPosts(formattedRelated);
+          }
         }
       }
 
