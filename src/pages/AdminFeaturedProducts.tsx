@@ -233,8 +233,12 @@ const AdminFeaturedProducts = () => {
       image_url: '',
       category: '',
     });
+    setImagePreview(null);
     setEditingId(null);
     setShowForm(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   if (loading) {
