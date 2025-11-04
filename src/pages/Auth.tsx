@@ -35,48 +35,18 @@ const Auth = () => {
     const password = formData.get('password') as string;
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const session = await authApi.login(email, password);
 
-      if (error) {
-        if (error.message === 'Invalid login credentials') {
-          toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "Invalid email or password. Please check your credentials and try again.",
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: error.message,
-          });
-        }
-      } else {
-        // Record last_login_at for the user profile
-        const { data: userRes } = await supabase.auth.getUser();
-        const userId = userRes?.user?.id;
-        if (userId) {
-          // Fire-and-forget; do not block navigation
-          supabase
-            .from('profiles')
-            .update({ last_login_at: new Date().toISOString() })
-            .eq('user_id', userId)
-            .then(({ error }) => {
-              if (error) console.warn('Failed to update last_login_at:', error.message);
-            });
-        }
-
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully logged in.",
-        });
-        navigate('/admin/dashboard');
-      }
+      toast({
+        title: "Welcome back!",
+        description: "You have been successfully logged in.",
+      });
+      navigate('/admin/dashboard');
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsLoading(false);
