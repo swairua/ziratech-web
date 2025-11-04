@@ -130,6 +130,19 @@ export const authApi = {
       body: JSON.stringify({ last_login_at: new Date().toISOString() }),
     }).catch(err => console.warn('Failed to update last login:', err));
 
+    // Audit log (best-effort)
+    await fetch(`${API_BASE}?table=activity_logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userIdNum,
+        action: 'login',
+        table_name: 'users',
+        record_id: userIdNum,
+        description: JSON.stringify({ email: user.email })
+      }),
+    }).catch(err => console.warn('Failed to write login log:', err));
+
     const token = generateToken();
 
     // Store session
@@ -151,8 +164,25 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
-    localStorage.removeItem('auth_session');
-    localStorage.removeItem('auth_token');
+    try {
+      const session = await this.getSession();
+      if (session?.user?.id) {
+        await fetch(`${API_BASE}?table=activity_logs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: session.user.id,
+            action: 'logout',
+            table_name: 'users',
+            record_id: session.user.id,
+            description: JSON.stringify({ email: session.user.email })
+          }),
+        }).catch(() => {});
+      }
+    } finally {
+      localStorage.removeItem('auth_session');
+      localStorage.removeItem('auth_token');
+    }
   },
 
   async getSession(): Promise<AuthSession | null> {
