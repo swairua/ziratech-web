@@ -20,7 +20,7 @@ const Contact = () => {
   });
 
   // Prefill from localStorage if present (e.g., Request Quote flow)
-  useState(() => {
+  useEffect(() => {
     try {
       const raw = localStorage.getItem('contact_prefill');
       if (raw) {
@@ -36,7 +36,7 @@ const Contact = () => {
     } catch (e) {
       // ignore
     }
-  });
+  }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
