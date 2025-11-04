@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { authApi } from "@/lib/authApi";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const Auth = () => {
@@ -18,7 +18,7 @@ const Auth = () => {
   // Check if user is already logged in
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = await authApi.getSession();
       if (session) {
         navigate('/admin/dashboard');
       }
@@ -35,48 +35,18 @@ const Auth = () => {
     const password = formData.get('password') as string;
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const session = await authApi.login(email, password);
 
-      if (error) {
-        if (error.message === 'Invalid login credentials') {
-          toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "Invalid email or password. Please check your credentials and try again.",
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: error.message,
-          });
-        }
-      } else {
-        // Record last_login_at for the user profile
-        const { data: userRes } = await supabase.auth.getUser();
-        const userId = userRes?.user?.id;
-        if (userId) {
-          // Fire-and-forget; do not block navigation
-          supabase
-            .from('profiles')
-            .update({ last_login_at: new Date().toISOString() })
-            .eq('user_id', userId)
-            .then(({ error }) => {
-              if (error) console.warn('Failed to update last_login_at:', error.message);
-            });
-        }
-
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully logged in.",
-        });
-        navigate('/admin/dashboard');
-      }
+      toast({
+        title: "Welcome back!",
+        description: "You have been successfully logged in.",
+      });
+      navigate('/admin/dashboard');
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -91,20 +61,18 @@ const Auth = () => {
     const email = formData.get('reset-email') as string;
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/admin/dashboard`,
-      });
+      const result = await authApi.resetPassword(email);
 
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Reset Failed",
-          description: error.message,
-        });
-      } else {
+      if (result.success) {
         toast({
           title: "Reset Email Sent",
           description: "Please check your email for password reset instructions.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Reset Failed",
+          description: "Password reset is not yet implemented. Please contact support.",
         });
       }
     } catch (error) {
@@ -149,44 +117,18 @@ const Auth = () => {
     }
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName,
-          }
-        }
-      });
+      const session = await authApi.signup(email, password, fullName);
 
-      if (error) {
-        if (error.message === 'User already registered') {
-          toast({
-            variant: "destructive",
-            title: "Account Exists",
-            description: "An account with this email already exists. Please login instead.",
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Signup Failed",
-            description: error.message,
-          });
-        }
-      } else {
-        toast({
-          title: "Account Created!",
-          description: "Please check your email to verify your account.",
-        });
-      }
+      toast({
+        title: "Account Created!",
+        description: "You have been automatically logged in.",
+      });
+      navigate('/admin/dashboard');
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsLoading(false);

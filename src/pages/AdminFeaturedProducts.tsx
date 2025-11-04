@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,23 +11,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Star, Plus, Trash2, AlertTriangle, RefreshCw, Database } from 'lucide-react';
+import { Star, Plus, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { checkIfProductsTableExists, initializeProductsTable } from '@/lib/initializeFeaturedProducts';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Product = Tables<'products'>;
+import { productsAPI, type Product } from '@/lib/api';
 
 const AdminFeaturedProducts = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Set<string>>(new Set());
+  const [featuredProducts, setFeaturedProducts] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [tableExists, setTableExists] = useState<boolean | null>(null);
-  const [isInitializing, setIsInitializing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -36,7 +30,7 @@ const AdminFeaturedProducts = () => {
     image_url: '',
     category: '',
   });
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -46,84 +40,40 @@ const AdminFeaturedProducts = () => {
 
   useEffect(() => {
     if (user) {
-      checkTableAndFetchProducts();
+      fetchProducts();
     }
   }, [user]);
-
-  const checkTableAndFetchProducts = async () => {
-    try {
-      setIsLoading(true);
-      const exists = await checkIfProductsTableExists();
-      setTableExists(exists);
-      if (exists) {
-        await fetchProducts();
-      }
-    } catch (error) {
-      console.error('Error checking table:', error);
-      setTableExists(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('featured_order', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: false });
+      const data = await productsAPI.getAll();
 
-      if (error) {
-        console.error(
-          'Error fetching products:',
-          JSON.stringify({
-            message: error.message,
-            code: error.code,
-            status: error.status,
-            details: error.details,
-            hint: error.hint
-          }, null, 2)
-        );
+      const sorted = [...data].sort((a, b) => {
+        const orderA = a.featured_order || 999;
+        const orderB = b.featured_order || 999;
+        if (orderA !== orderB) return orderA - orderB;
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
 
-        // Check for table not found errors
-        if (error.code === 'PGRST116' ||
-            error.message?.includes('relation') ||
-            error.message?.includes('does not exist') ||
-            error.message?.includes('products')) {
-          toast.error('Products table not initialized. Go back to Dashboard and click "Initialize Now".');
-        } else if (error.code === '42P01') {
-          toast.error('Products table does not exist. Please initialize it in the dashboard.');
-        } else if (error.code === 'PGRST301') {
-          toast.error('Permission denied. You may not have admin access.');
-        } else {
-          toast.error('Failed to fetch products: ' + (error.message || 'Unknown error'));
-        }
-      } else {
-        setProducts(data || []);
-        const featured = new Set(
-          data?.filter(p => p.is_featured).map(p => p.id) || []
-        );
-        setFeaturedProducts(featured);
-      }
-    } catch (err) {
-      console.error(
-        'Unexpected error fetching products:',
-        JSON.stringify({
-          message: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined
-        }, null, 2)
+      setProducts(sorted);
+      const featured = new Set(
+        sorted.filter(p => p.is_featured).map(p => p.id)
       );
-      toast.error('An unexpected error occurred while fetching products');
+      setFeaturedProducts(featured);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      toast.error('Failed to fetch products');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFeatureToggle = async (productId: string, currentState: boolean) => {
+  const handleFeatureToggle = async (productId: number, currentState: boolean) => {
     const newFeatured = new Set(featuredProducts);
-    
+
     if (!currentState) {
       if (newFeatured.size >= 4) {
         toast.error('Maximum 4 featured products allowed');
@@ -136,34 +86,27 @@ const AdminFeaturedProducts = () => {
 
     try {
       const order = !currentState ? Array.from(newFeatured).indexOf(productId) + 1 : null;
-      const { error } = await supabase
-        .from('products')
-        .update({
-          is_featured: !currentState,
-          featured_order: order,
-        })
-        .eq('id', productId);
+      await productsAPI.update(productId, {
+        is_featured: !currentState ? (1 as any) : (0 as any),
+        featured_order: order,
+      });
 
-      if (error) {
-        toast.error('Failed to update product');
-      } else {
-        setFeaturedProducts(newFeatured);
-        fetchProducts();
-        toast.success(
-          !currentState 
-            ? 'Product added to featured' 
-            : 'Product removed from featured'
-        );
-      }
+      setFeaturedProducts(newFeatured);
+      fetchProducts();
+      toast.success(
+        !currentState
+          ? 'Product added to featured'
+          : 'Product removed from featured'
+      );
     } catch (err) {
-      toast.error('An error occurred');
+      toast.error('Failed to update product');
       console.error(err);
     }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('Product name is required');
       return;
@@ -171,48 +114,34 @@ const AdminFeaturedProducts = () => {
 
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from('products')
-          .update({
-            name: formData.name,
-            description: formData.description || null,
-            price: formData.price ? parseFloat(formData.price) : null,
-            image_url: formData.image_url || null,
-            category: formData.category || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingId);
+        await productsAPI.update(editingId, {
+          name: formData.name,
+          description: formData.description || undefined,
+          price: formData.price ? parseFloat(formData.price) : undefined,
+          image_url: formData.image_url || undefined,
+          category: formData.category || undefined,
+        });
 
-        if (error) {
-          toast.error('Failed to update product');
-        } else {
-          toast.success('Product updated successfully');
-          setEditingId(null);
-          resetForm();
-          fetchProducts();
-        }
+        toast.success('Product updated successfully');
+        setEditingId(null);
+        resetForm();
+        fetchProducts();
       } else {
-        const { error } = await supabase
-          .from('products')
-          .insert({
-            name: formData.name,
-            description: formData.description || null,
-            price: formData.price ? parseFloat(formData.price) : null,
-            image_url: formData.image_url || null,
-            category: formData.category || null,
-            is_featured: false,
-          });
+        await productsAPI.create({
+          name: formData.name,
+          description: formData.description || undefined,
+          price: formData.price ? parseFloat(formData.price) : undefined,
+          image_url: formData.image_url || undefined,
+          category: formData.category || undefined,
+          is_featured: false,
+        });
 
-        if (error) {
-          toast.error('Failed to create product');
-        } else {
-          toast.success('Product created successfully');
-          resetForm();
-          fetchProducts();
-        }
+        toast.success('Product created successfully');
+        resetForm();
+        fetchProducts();
       }
     } catch (err) {
-      toast.error('An error occurred');
+      toast.error('Failed to save product');
       console.error(err);
     }
   };
@@ -229,22 +158,15 @@ const AdminFeaturedProducts = () => {
     setShowForm(true);
   };
 
-  const handleDeleteProduct = async (productId: string) => {
+  const handleDeleteProduct = async (productId: number) => {
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productId);
+      await productsAPI.delete(productId);
 
-      if (error) {
-        toast.error('Failed to delete product');
-      } else {
-        toast.success('Product deleted successfully');
-        setDeleteConfirm(null);
-        fetchProducts();
-      }
+      toast.success('Product deleted successfully');
+      setDeleteConfirm(null);
+      fetchProducts();
     } catch (err) {
-      toast.error('An error occurred');
+      toast.error('Failed to delete product');
       console.error(err);
     }
   };
@@ -259,26 +181,6 @@ const AdminFeaturedProducts = () => {
     });
     setEditingId(null);
     setShowForm(false);
-  };
-
-  const handleCreateTable = async () => {
-    try {
-      setIsInitializing(true);
-      const result = await initializeProductsTable();
-
-      if (result.success) {
-        toast.success('Products table created successfully!');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await checkTableAndFetchProducts();
-      } else {
-        toast.error(result.message || 'Failed to create table. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error creating table:', error);
-      toast.error('An error occurred while creating the table');
-    } finally {
-      setIsInitializing(false);
-    }
   };
 
   if (loading) {
@@ -296,86 +198,6 @@ const AdminFeaturedProducts = () => {
     return null;
   }
 
-  if (tableExists === false) {
-    return (
-      <AdminLayout>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Featured Products</h1>
-            <p className="text-gray-600 mt-1">
-              Manage up to 4 featured products displayed on the home page
-            </p>
-          </div>
-
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  <div>
-                    <CardTitle>Products Table Not Initialized</CardTitle>
-                    <CardDescription>Create the products database table to get started</CardDescription>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <Alert className="bg-white border-yellow-300">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-900">
-                  The products table needs to be created in your database before you can manage featured products.
-                </AlertDescription>
-              </Alert>
-
-              <div className="bg-white rounded-lg p-4 border border-yellow-200">
-                <h4 className="font-semibold text-yellow-900 mb-3">What happens next?</h4>
-                <ul className="list-disc list-inside space-y-2 text-sm text-yellow-900">
-                  <li>We'll create a products table in your Supabase database</li>
-                  <li>Configure proper access permissions and indexes</li>
-                  <li>You'll be able to add and manage featured products</li>
-                </ul>
-              </div>
-
-              <div className="flex gap-3 flex-wrap">
-                <Button
-                  onClick={handleCreateTable}
-                  disabled={isInitializing}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold"
-                >
-                  {isInitializing ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Table...
-                    </>
-                  ) : (
-                    <>
-                      <Database className="mr-2 h-4 w-4" />
-                      Create Table
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={() => checkTableAndFetchProducts()}
-                  disabled={isInitializing}
-                  variant="outline"
-                  className="border-yellow-400 text-yellow-900 hover:bg-yellow-100"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Verify Setup
-                </Button>
-              </div>
-
-              <p className="text-xs text-yellow-800 p-3 bg-white rounded border border-yellow-200">
-                💡 <strong>Tip:</strong> Click "Create Table" to automatically set up your products database. This typically takes a few seconds.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </AdminLayout>
-    );
-  }
 
   const featuredCount = featuredProducts.size;
 

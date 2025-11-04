@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Package, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Product = Tables<'products'>;
+import { ArrowRight, Package } from 'lucide-react';
+import { productsAPI, type Product } from '@/lib/api';
 
 const FeaturedProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -17,43 +13,15 @@ const FeaturedProducts = () => {
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
       try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('is_featured', true)
-          .order('featured_order', { ascending: true })
-          .limit(4);
-
-        if (error) {
-          console.error(
-            'Error fetching featured products:',
-            JSON.stringify({
-              message: error.message,
-              code: error.code,
-              details: error.details,
-              hint: error.hint
-            }, null, 2)
-          );
-
-          // Check if it's a "relation does not exist" error (table not created)
-          if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('products')) {
-            setError('Featured products table not initialized');
-          } else {
-            setError('Failed to load featured products');
-          }
-        } else {
-          setProducts(data || []);
-          setError(null);
-        }
+        const data = await productsAPI.getFeatured();
+        setProducts(data);
+        setError(null);
       } catch (err) {
         console.error(
-          'Unexpected error fetching featured products:',
-          JSON.stringify({
-            message: err instanceof Error ? err.message : String(err),
-            stack: err instanceof Error ? err.stack : undefined
-          }, null, 2)
+          'Error fetching featured products:',
+          err instanceof Error ? err.message : String(err)
         );
-        setError('An unexpected error occurred');
+        setError('Failed to load featured products');
       } finally {
         setLoading(false);
       }
