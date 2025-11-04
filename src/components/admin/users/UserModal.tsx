@@ -149,37 +149,16 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
       })
     });
 
-    // Read response body as text once to avoid "body stream already read" error
-    let responseText = '';
+    let result;
     try {
-      responseText = await response.text();
-    } catch (readError) {
-      throw new Error('Failed to read response from server');
+      result = await response.json();
+    } catch (parseError) {
+      throw new Error('Invalid response format from server');
     }
 
     if (!response.ok) {
-      let errorMsg = 'Failed to create user';
-      if (responseText) {
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMsg = errorData.error || errorMsg;
-        } catch {
-          // If we can't parse, use the raw text
-          errorMsg = responseText || errorMsg;
-        }
-      }
+      const errorMsg = result?.error || 'Failed to create user';
       throw new Error(errorMsg);
-    }
-
-    let result;
-    if (responseText) {
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        throw new Error('Invalid response format from server');
-      }
-    } else {
-      throw new Error('Empty response from server');
     }
 
     return result;
