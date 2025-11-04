@@ -15,10 +15,13 @@ const Hero = () => {
     <section id="home" className="relative min-h-screen flex items-center pt-20 overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src={africanHeroBanner} 
-          alt="African Technology Landscape" 
+        <img
+          src={AFRICAN_HERO_BANNER}
+          alt="African Technology Landscape"
           className="w-full h-full object-cover opacity-40"
+          loading="lazy"
+          width={1600}
+          height={970}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/40 via-black/30 to-brand-orange/25"></div>
       </div>
