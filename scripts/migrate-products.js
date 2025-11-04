@@ -6,7 +6,8 @@
  * and seeds it with sample data
  */
 
-const API_URL = "https://zira-tech.com/api.php";
+const API_URL = process.env.API_URL || "https://zira-tech.com/api.php";
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const TABLE_NAME = "products";
 
 const sampleProducts = [
@@ -128,7 +129,7 @@ async function migrate() {
     if (tableCreated) {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       await seedData();
-      console.log("\n✨ Migration completed successfully!");
+      console.log("\n��� Migration completed successfully!");
     } else {
       console.log("\n⚠️  Table creation failed. Skipping seeding.");
       process.exit(1);
