@@ -62,28 +62,37 @@ const AdminFeaturedProducts = () => {
         body: formData,
       });
 
-      let data;
+      // Try to extract any server-provided error details
+      let data: any = null;
       try {
-        data = await response.json();
-      } catch (parseError) {
-        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        data = await response.clone().json();
+      } catch (_) {
+        try {
+          const text = await response.clone().text();
+          if (text) console.error('Upload raw response:', text);
+        } catch (_) {
+          // ignore
+        }
       }
 
       if (!response.ok) {
-        throw new Error(data.error || `Upload failed: ${response.status}`);
+        const status = response.status;
+        const msg = (data && (data.error || data.message)) || `Upload failed: ${status}`;
+        throw new Error(msg);
       }
 
-      if (data.error) {
+      if (data && data.error) {
         throw new Error(data.error);
       }
 
-      const imageUrl = data.url || data.image_url || `https://zira-tech.com/assets/${file.name}`;
+      const imageUrl = (data && (data.url || data.image_url)) || `https://zira-tech.com/assets/${file.name}`;
       setFormData(prev => ({ ...prev, image_url: imageUrl }));
       setImagePreview(imageUrl);
       toast.success('Image uploaded successfully');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Upload error:', err);
-      toast.error('Failed to upload image');
+      const message = typeof err?.message === 'string' ? err.message : 'Failed to upload image';
+      toast.error(`${message}. You can paste an image URL as an alternative.`);
     } finally {
       setIsUploading(false);
     }
@@ -385,6 +394,23 @@ const AdminFeaturedProducts = () => {
                       className="hidden"
                       disabled={isUploading}
                     />
+
+                    {/* Manual URL fallback */}
+                    <div className="grid gap-2">
+                      <Label htmlFor="imageUrl" className="text-xs text-gray-600">Or paste an image URL</Label>
+                      <Input
+                        id="imageUrl"
+                        placeholder="https://.../image.jpg"
+                        value={formData.image_url}
+                        onChange={(e) => {
+                          const url = e.target.value;
+                          setFormData(prev => ({ ...prev, image_url: url }));
+                          setImagePreview(url || null);
+                        }}
+                      />
+                      <p className="text-xs text-gray-500">If upload fails, paste a direct image URL. We will store this URL.</p>
+                    </div>
+
                     {isUploading && (
                       <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                         <Loader className="h-4 w-4 animate-spin" />

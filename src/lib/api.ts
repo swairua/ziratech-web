@@ -53,29 +53,35 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export const productsAPI = {
   async getAll(): Promise<Product[]> {
     const response = await fetch(`${API_BASE}?table=products`);
-    const data = await handleResponse<Product[]>(response);
-    return Array.isArray(data) ? data : [];
+    const data = await handleResponse<any>(response);
+    if (Array.isArray(data)) return data as Product[];
+    if (Array.isArray(data?.data)) return data.data as Product[];
+    if (Array.isArray(data?.rows)) return data.rows as Product[];
+    return [];
   },
 
   async getFeatured(): Promise<Product[]> {
-    const response = await fetch(
-      `${API_BASE}?table=products`,
-      {
-        method: "GET",
-      }
-    );
-    const allProducts = await handleResponse<Product[]>(response);
-    return Array.isArray(allProducts)
-      ? allProducts
-          .filter((p) => p.is_featured)
-          .sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0))
+    const response = await fetch(`${API_BASE}?table=products`, { method: "GET" });
+    const all = await handleResponse<any>(response);
+    const list: Product[] = Array.isArray(all)
+      ? all
+      : Array.isArray(all?.data)
+      ? all.data
+      : Array.isArray(all?.rows)
+      ? all.rows
       : [];
+    return list
+      .filter((p) => p.is_featured)
+      .sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
   },
 
   async getById(id: number): Promise<Product> {
     const response = await fetch(`${API_BASE}?table=products&id=${id}`);
-    const data = await handleResponse<Product[]>(response);
-    return Array.isArray(data) ? data[0] : (data as Product);
+    const data = await handleResponse<any>(response);
+    if (Array.isArray(data)) return data[0] as Product;
+    if (Array.isArray(data?.data)) return data.data[0] as Product;
+    if (data?.data && typeof data.data === 'object') return data.data as Product;
+    return data as Product;
   },
 
   async create(product: Omit<Product, "id" | "created_at" | "updated_at">): Promise<{ success: boolean; id: number }> {
