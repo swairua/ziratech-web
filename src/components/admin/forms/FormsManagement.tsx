@@ -5,10 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { FormSubmissionsList } from './FormSubmissionsList';
 import { FormAnalytics } from './FormAnalytics';
 import { FileText, Briefcase, Settings, BarChart3, Video, Rocket, Globe, Lock, MessageSquare, Handshake, HelpCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/apiClient';
 
 export const FormsManagement = () => {
   const [activeTab, setActiveTab] = useState('all');
+  const { toast } = useToast();
   const [formStats, setFormStats] = useState({
     contact: { total: 0, new: 0, responded: 0 },
     career: { total: 0, new: 0, responded: 0 },
@@ -27,14 +29,19 @@ export const FormsManagement = () => {
 
   const fetchFormStats = async () => {
     try {
-      const { data: allSubmissions, error } = await supabase
-        .from('form_submissions')
-        .select('*');
+      const response = await api.formSubmissions.list();
 
-      if (error) {
-        console.error('Error fetching form stats:', error);
+      if (response.error) {
+        console.error('Error fetching form stats:', response.error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to fetch form submissions: ${response.error}`,
+        });
         return;
       }
+
+      const allSubmissions = response.data || [];
 
       const stats = {
         contact: { total: 0, new: 0, responded: 0 },
@@ -59,13 +66,13 @@ export const FormsManagement = () => {
 
       setFormStats(stats);
     } catch (error) {
-      console.error(
-        'Error fetching form stats:',
-        JSON.stringify({
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined
-        }, null, 2)
-      );
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error fetching form stats:', errorMsg);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to fetch form submissions: ${errorMsg}`,
+      });
     }
   };
 
