@@ -62,17 +62,16 @@ const AdminFeaturedProducts = () => {
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || `Upload failed: ${response.status}`);
-        } catch {
-          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-        }
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Upload failed: ${response.status}`);
+      }
 
       if (data.error) {
         throw new Error(data.error);
