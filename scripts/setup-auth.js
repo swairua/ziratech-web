@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
+import crypto from 'crypto';
+
 const API_URL = "https://zira-tech.com/api.php";
-const crypto = require('crypto');
 
 // Simple password hashing (in production, use bcrypt)
 function hashPassword(password) {
