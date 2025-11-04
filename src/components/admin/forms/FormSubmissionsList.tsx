@@ -42,13 +42,29 @@ interface FormSubmission {
   created_at: string;
   handled_by?: string;
   handled_at?: string;
-  data?: any; // Additional form data stored as JSON
+  form_data?: any;
+  data?: any;
   platform?: string;
 }
 
 interface FormSubmissionsListProps {
   formType: 'all' | 'contact' | 'career' | 'business' | 'platforms' | 'demo_booking' | 'start_journey' | 'zira_web' | 'zira_lock' | 'zira_sms' | 'partnership' | 'support';
   onUpdate?: () => void;
+}
+
+function parseJSON(val: any) {
+  if (val == null) return null;
+  if (typeof val === 'object') return val;
+  try {
+    return JSON.parse(String(val));
+  } catch {
+    return null;
+  }
+}
+
+function extractDetails(s: FormSubmission) {
+  const details = parseJSON((s as any).form_data) || parseJSON((s as any).data) || {};
+  return details || {};
 }
 
 export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListProps) => {
@@ -72,47 +88,44 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
         throw new Error(response.error);
       }
 
-      let submissions = response.data || [];
+      let list: any[] = Array.isArray(response.data) ? response.data : [];
 
       // Apply form type filter on client side
       if (formType !== 'all') {
         if (formType === 'business') {
-          submissions = submissions.filter((s: any) =>
-            ['demo_booking', 'start_journey', 'partnership', 'support'].includes(s.form_type)
-          );
+          list = list.filter((s: any) => ['demo_booking', 'start_journey', 'partnership', 'support'].includes(s.form_type));
         } else if (formType === 'platforms') {
-          submissions = submissions.filter((s: any) =>
-            ['zira_web', 'zira_lock', 'zira_sms'].includes(s.form_type)
-          );
+          list = list.filter((s: any) => ['zira_web', 'zira_lock', 'zira_sms'].includes(s.form_type));
         } else {
-          submissions = submissions.filter((s: any) => s.form_type === formType);
+          list = list.filter((s: any) => s.form_type === formType);
         }
       }
 
       // Apply search filter on client side
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        submissions = submissions.filter((s: any) =>
-          s.name?.toLowerCase().includes(query) ||
-          s.email?.toLowerCase().includes(query) ||
-          s.company?.toLowerCase().includes(query) ||
-          s.data?.name?.toLowerCase().includes(query) ||
-          s.data?.email?.toLowerCase().includes(query) ||
-          s.data?.company?.toLowerCase().includes(query)
-        );
+        list = list.filter((s: any) => {
+          const d = extractDetails(s);
+          return (
+            s.name?.toLowerCase().includes(query) ||
+            s.email?.toLowerCase().includes(query) ||
+            s.company?.toLowerCase().includes(query) ||
+            d?.name?.toLowerCase?.().includes(query) ||
+            d?.email?.toLowerCase?.().includes(query) ||
+            d?.company?.toLowerCase?.().includes(query)
+          );
+        });
       }
 
       // Apply status filter on client side
       if (statusFilter !== 'all') {
-        submissions = submissions.filter((s: any) => s.status === statusFilter);
+        list = list.filter((s: any) => s.status === statusFilter);
       }
 
       // Sort by created_at descending
-      submissions.sort((a: any, b: any) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      list.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      setSubmissions(submissions);
+      setSubmissions(list as FormSubmission[]);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -155,7 +168,7 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
       responded: 'bg-green-100 text-green-800',
       archived: 'bg-gray-100 text-gray-800'
     } as const;
-    
+
     return (
       <Badge className={variants[status as keyof typeof variants] || 'bg-gray-100 text-gray-800'}>
         {status}
@@ -199,16 +212,24 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
     const headers = ['Name', 'Email', 'Phone', 'Company', 'Form Type', 'Status', 'Date', 'Message'];
     const csvContent = [
       headers.join(','),
-      ...submissions.map(sub => [
-        sub.name,
-        sub.email,
-        sub.phone || '',
-        sub.company || '',
-        sub.form_type,
-        sub.status,
-        new Date(sub.created_at).toLocaleDateString(),
-        `"${sub.message?.replace(/"/g, '""') || ''}"`
-      ].join(','))
+      ...submissions.map(sub => {
+        const d: any = extractDetails(sub);
+        const name = sub.name || d?.name || '';
+        const email = sub.email || d?.email || '';
+        const phone = sub.phone || d?.phone || '';
+        const company = sub.company || d?.company || '';
+        const message = (sub.message || '').replace(/\"/g, '"');
+        return [
+          name,
+          email,
+          phone,
+          company,
+          sub.form_type,
+          sub.status,
+          new Date(sub.created_at).toLocaleDateString(),
+          `"${message.replace(/"/g, '""')}"`
+        ].join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -246,9 +267,7 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
         </div>
       </CardHeader>
       <CardContent>
-        {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">
-          {/* Search */}
           <div className="flex-1 min-w-64">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -261,7 +280,6 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
             </div>
           </div>
 
-          {/* Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by status" />
@@ -276,7 +294,6 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
           </Select>
         </div>
 
-        {/* Table */}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -297,113 +314,126 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
                   </TableCell>
                 </TableRow>
               ) : (
-                submissions.map((submission) => (
-                  <TableRow key={submission.id}>
-                     <TableCell>
-                       <div>
-                         <div className="font-medium">{submission.name || submission.data?.name}</div>
-                         <div className="text-sm text-gray-500">{submission.email || submission.data?.email}</div>
-                         {(submission.phone || submission.data?.phone) && (
-                           <div className="text-sm text-gray-500">{submission.phone || submission.data?.phone}</div>
-                         )}
-                         {(submission.company || submission.data?.company) && (
-                           <div className="text-sm text-gray-500">{submission.company || submission.data?.company}</div>
-                         )}
-                         {(submission.position || submission.data?.role) && (
-                           <div className="text-sm text-blue-600">
-                             {submission.form_type === 'career' ? 'Position' : 'Role'}: {submission.position || submission.data?.role}
-                           </div>
-                         )}
-                         {submission.platform && (
-                           <div className="text-sm text-purple-600">Platform: {submission.platform}</div>
-                         )}
-                         {submission.data?.businessType && (
-                           <div className="text-sm text-green-600">Business: {submission.data.businessType}</div>
-                         )}
-                         {submission.data?.businessSize && (
-                           <div className="text-sm text-orange-600">Size: {submission.data.businessSize}</div>
-                         )}
-                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {getFormTypeBadge(submission.form_type)}
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(submission.status)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-48 text-sm space-y-1">
-                        {submission.message && (
-                          <div className="truncate">{submission.message}</div>
-                        )}
-                        {submission.data?.currentChallenges && (
-                          <div className="truncate text-red-600">
-                            <span className="font-medium">Challenges:</span> {submission.data.currentChallenges}
-                          </div>
-                        )}
-                        {submission.data?.requirements && (
-                          <div className="truncate text-blue-600">
-                            <span className="font-medium">Requirements:</span> {submission.data.requirements}
-                          </div>
-                        )}
-                        {submission.data?.timePreference && (
-                          <div className="truncate text-green-600">
-                            <span className="font-medium">Preferred Time:</span> {submission.data.timePreference}
-                          </div>
-                        )}
-                        {submission.data?.specificRequirements && (
-                          <div className="truncate text-purple-600">
-                            <span className="font-medium">Needs:</span> {submission.data.specificRequirements}
-                          </div>
-                        )}
-                        {(!submission.message && !submission.data?.currentChallenges && !submission.data?.requirements && !submission.data?.timePreference && !submission.data?.specificRequirements) && (
-                          <div className="text-gray-400">No message</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {new Date(submission.created_at).toLocaleDateString()}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-white z-50">
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Mail className="mr-2 h-4 w-4" />
-                            Send Email
-                          </DropdownMenuItem>
-                          {submission.cv_file_url && (
-                            <DropdownMenuItem>
-                              <Download className="mr-2 h-4 w-4" />
-                              Download CV
-                            </DropdownMenuItem>
+                submissions.map((submission) => {
+                  const d: any = extractDetails(submission);
+                  const name = submission.name || d?.name;
+                  const email = submission.email || d?.email;
+                  const phone = submission.phone || d?.phone;
+                  const company = submission.company || d?.company;
+                  const role = submission.position || d?.role;
+                  const platform = submission.platform || d?.platform;
+                  const challenges = d?.currentChallenges || d?.current_challenges;
+                  const requirements = d?.requirements;
+                  const timePref = d?.timePreference || d?.preferred_time;
+                  const specificReq = d?.specificRequirements || d?.specific_requirements;
+                  return (
+                    <TableRow key={submission.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{name}</div>
+                          <div className="text-sm text-gray-500">{email}</div>
+                          {phone && (
+                            <div className="text-sm text-gray-500">{phone}</div>
                           )}
-                          <DropdownMenuItem onClick={() => handleStatusUpdate(submission.id, 'reviewed')}>
-                            Mark as Reviewed
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleStatusUpdate(submission.id, 'responded')}>
-                            Mark as Responded
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleStatusUpdate(submission.id, 'archived')}>
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archive
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          {company && (
+                            <div className="text-sm text-gray-500">{company}</div>
+                          )}
+                          {role && (
+                            <div className="text-sm text-blue-600">
+                              {submission.form_type === 'career' ? 'Position' : 'Role'}: {role}
+                            </div>
+                          )}
+                          {platform && (
+                            <div className="text-sm text-purple-600">Platform: {platform}</div>
+                          )}
+                          {d?.businessType && (
+                            <div className="text-sm text-green-600">Business: {d.businessType}</div>
+                          )}
+                          {d?.businessSize && (
+                            <div className="text-sm text-orange-600">Size: {d.businessSize}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getFormTypeBadge(submission.form_type)}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(submission.status)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-48 text-sm space-y-1">
+                          {submission.message && (
+                            <div className="truncate">{submission.message}</div>
+                          )}
+                          {challenges && (
+                            <div className="truncate text-red-600">
+                              <span className="font-medium">Challenges:</span> {challenges}
+                            </div>
+                          )}
+                          {requirements && (
+                            <div className="truncate text-blue-600">
+                              <span className="font-medium">Requirements:</span> {requirements}
+                            </div>
+                          )}
+                          {timePref && (
+                            <div className="truncate text-green-600">
+                              <span className="font-medium">Preferred Time:</span> {timePref}
+                            </div>
+                          )}
+                          {specificReq && (
+                            <div className="truncate text-purple-600">
+                              <span className="font-medium">Needs:</span> {specificReq}
+                            </div>
+                          )}
+                          {!submission.message && !challenges && !requirements && !timePref && !specificReq && (
+                            <div className="text-gray-400">No message</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {new Date(submission.created_at).toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-white z-50">
+                            <DropdownMenuItem>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Mail className="mr-2 h-4 w-4" />
+                              Send Email
+                            </DropdownMenuItem>
+                            {submission.cv_file_url && (
+                              <DropdownMenuItem>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download CV
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(submission.id, 'reviewed')}>
+                              Mark as Reviewed
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(submission.id, 'responded')}>
+                              Mark as Responded
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(submission.id, 'archived')}>
+                              <Archive className="mr-2 h-4 w-4" />
+                              Archive
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
