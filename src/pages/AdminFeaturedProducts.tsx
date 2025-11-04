@@ -207,6 +207,7 @@ const AdminFeaturedProducts = () => {
       image_url: product.image_url || '',
       category: product.category || '',
     });
+    setImagePreview(product.image_url || null);
     setEditingId(product.id);
     setShowForm(true);
   };
