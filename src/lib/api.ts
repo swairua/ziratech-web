@@ -84,18 +84,10 @@ export const productsAPI = {
   },
 
   async getFeatured(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE}?table=products`, { method: "GET" });
-    const all = await handleResponse<any>(response);
-    const list: Product[] = Array.isArray(all)
-      ? all
-      : Array.isArray(all?.data)
-      ? all.data
-      : Array.isArray(all?.rows)
-      ? all.rows
-      : [];
-    return list
-      .filter((p) => p.is_featured)
-      .sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
+    const response = await fetch(`${API_BASE}?table=products&action=featured`, { method: "GET" });
+    const data = await handleResponse<any>(response);
+    const list: Product[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : Array.isArray(data?.rows) ? data.rows : [];
+    return list.sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
   },
 
   async getById(id: number): Promise<Product> {
