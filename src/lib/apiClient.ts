@@ -49,30 +49,20 @@ async function apiCall<T>(
 
     const response = await fetch(url.toString(), options);
 
-    // Clone response IMMEDIATELY to avoid "body stream already read" errors
-    // Do this before reading any response properties
-    let safeResponse: Response;
-    try {
-      safeResponse = response.clone();
-    } catch (e) {
-      console.error('Failed to clone response:', e);
-      return { error: `API Error: Failed to process response` };
-    }
-
-    // Now we can safely read status from original response (headers don't consume body)
+    // Get headers BEFORE reading body (headers don't consume the stream)
     const status = response.status;
     const ok = response.ok;
+    const contentType = response.headers.get('content-type') || '';
 
-    // Read from the cloned response so the original stream remains untouched for other consumers
+    // Read response body ONCE and IMMEDIATELY to avoid stream consumption issues
     let text: string;
     try {
-      text = await safeResponse.text();
+      text = await response.text();
     } catch (e) {
-      console.error('Failed to read response body from cloned response:', e);
-      return { error: `API Error: ${response.status}` };
+      console.error('Failed to read response body:', e);
+      return { error: `API Error: ${status}` };
     }
 
-    const contentType = response.headers.get('content-type') || '';
     const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
 
     if (!contentType.includes('application/json')) {
