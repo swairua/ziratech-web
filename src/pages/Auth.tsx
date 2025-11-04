@@ -117,6 +117,7 @@ const Auth = () => {
 
     try {
       const session = await authApi.signup(email, password, fullName);
+      await refreshSession();
 
       toast({
         title: "Account Created!",
