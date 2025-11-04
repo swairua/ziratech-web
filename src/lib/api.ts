@@ -14,29 +14,21 @@ export interface Product {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  // Clone response to safely read the body
-  const clonedResponse = response.clone();
+  let data;
 
-  let responseText: string;
   try {
-    responseText = await clonedResponse.text();
-  } catch (readError) {
-    throw new Error(`Failed to read response: ${readError instanceof Error ? readError.message : 'Unknown error'}`);
+    data = await response.json();
+  } catch (parseError) {
+    console.error('Failed to parse response as JSON:', parseError);
+    throw new Error(`Invalid JSON response from API (${response.status})`);
   }
 
   if (!response.ok) {
-    throw new Error(`API Error ${response.status}: ${responseText || 'Unknown error'}`);
+    throw new Error(`API Error ${response.status}: ${data?.error || 'Unknown error'}`);
   }
 
-  if (!responseText) {
+  if (!data) {
     throw new Error('Empty response from API');
-  }
-
-  let data;
-  try {
-    data = JSON.parse(responseText);
-  } catch (err) {
-    throw new Error(`Invalid JSON response: ${responseText}`);
   }
 
   if (data.error) {
