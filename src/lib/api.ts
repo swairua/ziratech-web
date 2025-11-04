@@ -17,9 +17,18 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
+  // Clone response immediately to avoid "body stream already read" errors
+  let safeResponse: Response;
+  try {
+    safeResponse = response.clone();
+  } catch (e) {
+    console.error('Response body already consumed:', status);
+    throw new Error(`API Error: ${status}`);
+  }
+
   let data;
   try {
-    data = await response.json();
+    data = await safeResponse.json();
   } catch (parseError) {
     console.error('Failed to parse response as JSON:', parseError, 'Status:', status);
     throw new Error(`Invalid JSON response from API (${status})`);
