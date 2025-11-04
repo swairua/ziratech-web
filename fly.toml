@@ -1,0 +1,30 @@
+# Fly.io configuration for Zira Technologies
+app = "ziratech"
+primary_region = "sjc"
+
+[build]
+  builder = "paket"
+
+[env]
+  VITE_API_URL = "https://zira-tech.com/api.php"
+
+[env.production]
+  VITE_API_URL = "https://zira-tech.com/api.php"
+
+[[services]]
+  internal_port = 8080
+  processes = ["app"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
