@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { authApi } from "@/lib/authApi";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const Auth = () => {
@@ -24,22 +23,114 @@ const Auth = () => {
     }
   }, [loading, user, navigate]);
 
+  const API_URL = (import.meta.env.VITE_API_URL as string) || 'https://zira-tech.com/api.php';
+
+  async function hashPasswordLocal(password: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+    const email = (formData.get('email') as string || '').trim().toLowerCase();
+    const password = formData.get('password') as string || '';
 
     try {
-      const session = await authApi.login(email, password);
+      if (!email || !password) throw new Error('Please enter email and password');
+
+      const passwordHash = await hashPasswordLocal(password);
+
+      // Fetch user by email
+      let url: URL;
+      try {
+        url = /^https?:\/\//i.test(API_URL) ? new URL(API_URL) : new URL(API_URL, window.location.origin);
+      } catch (err) {
+        url = new URL(`${API_URL}?table=users`, window.location.origin);
+      }
+      url.searchParams.set('table', 'users');
+      url.searchParams.set('email', email);
+
+      const resp = await fetch(url.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        console.error('API GET users failed:', resp.status, txt);
+        throw new Error('Login failed. Please try again.');
+      }
+
+      const json = await resp.json().catch((err) => {
+        console.error('Failed to parse users response:', err);
+        throw new Error('Login failed. Please try again.');
+      });
+
+      const users = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
+      if (!users || users.length === 0) {
+        throw new Error('Invalid email or password');
+      }
+
+      const user = users[0];
+      if (!user || (user.password_hash || '') !== passwordHash) {
+        throw new Error('Invalid email or password');
+      }
+
+      // Get role
+      let roleUrl: URL;
+      try {
+        roleUrl = /^https?:\/\//i.test(API_URL) ? new URL(API_URL) : new URL(API_URL, window.location.origin);
+      } catch (err) {
+        roleUrl = new URL(`${API_URL}?table=user_roles`, window.location.origin);
+      }
+      roleUrl.searchParams.set('table', 'user_roles');
+      roleUrl.searchParams.set('user_id', String(user.id));
+      const roleResp = await fetch(roleUrl.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+      const roleJson = await roleResp.json().catch(() => null);
+      const roleRows = Array.isArray(roleJson?.data) ? roleJson.data : Array.isArray(roleJson) ? roleJson : [];
+      const userRole = roleRows[0]?.role || 'user';
+
+      // Update last login (best-effort)
+      fetch(`${API_URL}?table=users&id=${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ last_login_at: new Date().toISOString() }),
+      }).catch(err => console.warn('Failed to update last login:', err));
+
+      // Audit log (best-effort)
+      fetch(`${API_URL}?table=activity_logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          action: 'login',
+          table_name: 'users',
+          record_id: user.id,
+          description: JSON.stringify({ email: user.email })
+        }),
+      }).catch(err => console.warn('Failed to write login log:', err));
+
+      const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const session = {
+        user: {
+          id: Number(user.id),
+          email: user.email,
+          full_name: user.full_name,
+          status: user.status,
+          role: (userRole || 'user').toLowerCase(),
+        },
+        token,
+      };
+
+      localStorage.setItem('auth_session', JSON.stringify(session));
+      localStorage.setItem('auth_token', token);
+
       await refreshSession();
 
-      toast({
-        title: "Welcome back!",
-        description: "You have been successfully logged in.",
-      });
+      toast({ title: 'Welcome back!', description: 'You have been successfully logged in.' });
       navigate('/admin/dashboard');
     } catch (error) {
       const technical = error instanceof Error ? error : new Error(String(error));
@@ -48,11 +139,7 @@ const Auth = () => {
         ? 'Login failed. Please try again.'
         : technical.message || 'Login failed. Please try again.';
 
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: userMessage,
-      });
+      toast({ variant: 'destructive', title: 'Login Failed', description: userMessage });
     } finally {
       setIsLoading(false);
     }

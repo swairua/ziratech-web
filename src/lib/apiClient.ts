@@ -13,8 +13,21 @@ async function apiCall<T>(
   body?: any
 ): Promise<ApiResponse<T>> {
   try {
-    const url = new URL(`${API_BASE}?table=${table}`);
-    
+    // Build a URL handling both absolute and relative API_BASE values
+    let url: URL;
+    try {
+      url = /^https?:\/\//i.test(API_BASE) ? new URL(API_BASE) : new URL(API_BASE, window.location.origin);
+    } catch (e) {
+      // Fallback to string construction if URL() fails
+      const baseStr = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+      const urlStr = `${baseStr}?table=${table}`;
+      // Use the URL constructor with origin to ensure a valid URL object
+      url = new URL(urlStr, window.location.origin);
+    }
+
+    // Ensure the table param is set
+    url.searchParams.set('table', table);
+
     if (method === "GET" && params) {
       Object.keys(params).forEach(key => {
         if (params[key] !== null && params[key] !== undefined) {
