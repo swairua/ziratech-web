@@ -57,7 +57,8 @@ const AdminFeaturedProducts = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('https://zira-tech.com/api.php?action=upload_image&table=products', {
+      const apiUrl = (import.meta.env.VITE_API_URL as string) || '/api.php';
+      const response = await fetch(`${apiUrl}?action=upload_image`, {
         method: 'POST',
         body: formData,
       });
