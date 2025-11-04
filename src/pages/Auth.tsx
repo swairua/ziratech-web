@@ -61,20 +61,18 @@ const Auth = () => {
     const email = formData.get('reset-email') as string;
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/admin/dashboard`,
-      });
+      const result = await authApi.resetPassword(email);
 
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Reset Failed",
-          description: error.message,
-        });
-      } else {
+      if (result.success) {
         toast({
           title: "Reset Email Sent",
           description: "Please check your email for password reset instructions.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Reset Failed",
+          description: "Password reset is not yet implemented. Please contact support.",
         });
       }
     } catch (error) {
