@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Star, Plus, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Star, Plus, Trash2, AlertTriangle, RefreshCw, Upload, X, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { productsAPI, type Product } from '@/lib/api';
 
