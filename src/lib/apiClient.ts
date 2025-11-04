@@ -49,16 +49,17 @@ async function apiCall<T>(
 
     const response = await fetch(url.toString(), options);
 
-    // Clone response immediately to avoid "body stream already read" errors
+    // Clone response IMMEDIATELY to avoid "body stream already read" errors
+    // Do this before reading any response properties
     let safeResponse: Response;
     try {
       safeResponse = response.clone();
     } catch (e) {
-      console.error('Response body already consumed before clone:', response.status);
-      return { error: `API Error: ${response.status}` };
+      console.error('Failed to clone response:', e);
+      return { error: `API Error: Failed to process response` };
     }
 
-    // Check response status first (doesn't require reading body)
+    // Now we can safely read status from original response (headers don't consume body)
     const status = response.status;
     const ok = response.ok;
 
