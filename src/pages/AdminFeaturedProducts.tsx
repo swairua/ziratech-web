@@ -40,76 +40,32 @@ const AdminFeaturedProducts = () => {
 
   useEffect(() => {
     if (user) {
-      checkTableAndFetchProducts();
+      fetchProducts();
     }
   }, [user]);
-
-  const checkTableAndFetchProducts = async () => {
-    try {
-      setIsLoading(true);
-      const exists = await checkIfProductsTableExists();
-      setTableExists(exists);
-      if (exists) {
-        await fetchProducts();
-      }
-    } catch (error) {
-      console.error('Error checking table:', error);
-      setTableExists(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('featured_order', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: false });
+      const data = await productsAPI.getAll();
 
-      if (error) {
-        console.error(
-          'Error fetching products:',
-          JSON.stringify({
-            message: error.message,
-            code: error.code,
-            status: error.status,
-            details: error.details,
-            hint: error.hint
-          }, null, 2)
-        );
+      const sorted = [...data].sort((a, b) => {
+        const orderA = a.featured_order || 999;
+        const orderB = b.featured_order || 999;
+        if (orderA !== orderB) return orderA - orderB;
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
 
-        // Check for table not found errors
-        if (error.code === 'PGRST116' ||
-            error.message?.includes('relation') ||
-            error.message?.includes('does not exist') ||
-            error.message?.includes('products')) {
-          toast.error('Products table not initialized. Go back to Dashboard and click "Initialize Now".');
-        } else if (error.code === '42P01') {
-          toast.error('Products table does not exist. Please initialize it in the dashboard.');
-        } else if (error.code === 'PGRST301') {
-          toast.error('Permission denied. You may not have admin access.');
-        } else {
-          toast.error('Failed to fetch products: ' + (error.message || 'Unknown error'));
-        }
-      } else {
-        setProducts(data || []);
-        const featured = new Set(
-          data?.filter(p => p.is_featured).map(p => p.id) || []
-        );
-        setFeaturedProducts(featured);
-      }
-    } catch (err) {
-      console.error(
-        'Unexpected error fetching products:',
-        JSON.stringify({
-          message: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined
-        }, null, 2)
+      setProducts(sorted);
+      const featured = new Set(
+        sorted.filter(p => p.is_featured).map(p => p.id)
       );
-      toast.error('An unexpected error occurred while fetching products');
+      setFeaturedProducts(featured);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      toast.error('Failed to fetch products');
     } finally {
       setIsLoading(false);
     }
