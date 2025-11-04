@@ -37,13 +37,10 @@ async function apiCall<T>(
     const response = await fetch(url.toString(), options);
 
     // Clone response immediately to avoid "body stream already read" errors
-    // This ensures we can safely read the response even if something upstream read it
     let safeResponse: Response;
     try {
       safeResponse = response.clone();
     } catch (e) {
-      // If we can't clone, the body was already consumed
-      // Return error with status code only
       console.error('Response body already consumed before clone:', response.status);
       return { error: `API Error: ${response.status}` };
     }
@@ -56,8 +53,8 @@ async function apiCall<T>(
 
     // Try to parse response as JSON
     try {
-      // Ensure content-type is JSON
-      const contentType = response.headers.get('content-type') || '';
+      // Ensure content-type is JSON (read from cloned response)
+      const contentType = safeResponse.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
         const text = await safeResponse.text();
         const snippet = text.slice(0, 300).replace(/\s+/g, ' ');
