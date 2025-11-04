@@ -17,6 +17,29 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
+  // Check Content-Type before parsing
+  const contentType = response.headers.get('content-type') || '';
+
+  // If content-type isn't JSON, read text and provide a useful error
+  if (!contentType.includes('application/json')) {
+    let text;
+    try {
+      text = await response.text();
+    } catch (e) {
+      console.error('Failed to read non-JSON response body', e);
+      throw new Error(`API returned non-JSON response (status ${status})`);
+    }
+    const snippet = text.slice(0, 300).replace(/\s+/g, ' ');
+    console.error('API returned non-JSON response:', snippet);
+
+    // Detect common case where PHP source is returned (PHP not executed) or HTML error page
+    if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<!DOCTYPE') || snippet.trim().startsWith('<html')) {
+      throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
+    }
+
+    throw new Error('Invalid JSON response from API');
+  }
+
   // Clone response immediately to avoid "body stream already read" errors
   let safeResponse: Response;
   try {
