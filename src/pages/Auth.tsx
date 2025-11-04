@@ -117,44 +117,18 @@ const Auth = () => {
     }
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName,
-          }
-        }
-      });
+      const session = await authApi.signup(email, password, fullName);
 
-      if (error) {
-        if (error.message === 'User already registered') {
-          toast({
-            variant: "destructive",
-            title: "Account Exists",
-            description: "An account with this email already exists. Please login instead.",
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Signup Failed",
-            description: error.message,
-          });
-        }
-      } else {
-        toast({
-          title: "Account Created!",
-          description: "Please check your email to verify your account.",
-        });
-      }
+      toast({
+        title: "Account Created!",
+        description: "You have been automatically logged in.",
+      });
+      navigate('/admin/dashboard');
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsLoading(false);
