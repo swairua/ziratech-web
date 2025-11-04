@@ -34,20 +34,18 @@ async function apiCall<T>(
       options.body = JSON.stringify(body);
     }
 
-    let response = await fetch(url.toString(), options);
+    const response = await fetch(url.toString(), options);
 
-    // Clone response to safely read the body
+    // Clone response immediately to safely read the body
     // This prevents "body stream already read" errors
-    if (!response.ok || response.status >= 400) {
-      response = response.clone();
-    }
+    const clonedResponse = response.clone();
 
-    // Read response body once
+    // Read response body once from the clone
     let responseText: string;
     try {
-      responseText = await response.text();
+      responseText = await clonedResponse.text();
     } catch (readError) {
-      // If we can't read the response, try to get basic error info
+      // If we can't read the response body, return error with status code
       console.error('Failed to read response body:', readError);
       return { error: `API Error: ${response.status}` };
     }
