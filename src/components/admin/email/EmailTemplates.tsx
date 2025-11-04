@@ -63,36 +63,73 @@ export const EmailTemplates = () => {
     setIsLoading(false);
   };
 
-  const handleSaveTemplate = () => {
-    toast({
-      title: "Template Saved",
-      description: "Email template has been saved successfully",
-    });
-    setIsEditing(false);
-    setSelectedTemplate(null);
+  const handleSaveTemplate = async (templateData: Partial<EmailTemplate>) => {
+    try {
+      if (selectedTemplate?.id) {
+        await emailTemplatesApi.update(selectedTemplate.id, templateData);
+        toast({
+          title: "Template Updated",
+          description: "Email template has been updated successfully",
+        });
+      } else {
+        await emailTemplatesApi.create(templateData);
+        toast({
+          title: "Template Created",
+          description: "Email template has been created successfully",
+        });
+      }
+      setIsEditing(false);
+      setSelectedTemplate(null);
+      loadTemplates();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save email template",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteTemplate = (id: string) => {
-    setTemplates(templates.filter(t => t.id !== id));
-    toast({
-      title: "Template Deleted",
-      description: "Email template has been deleted successfully",
-    });
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      await emailTemplatesApi.delete(id);
+      setTemplates(templates.filter(t => t.id !== id));
+      toast({
+        title: "Template Deleted",
+        description: "Email template has been deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete email template",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDuplicateTemplate = (template: EmailTemplate) => {
-    const newTemplate = {
-      ...template,
-      id: Date.now().toString(),
-      name: `${template.name} (Copy)`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    setTemplates([...templates, newTemplate]);
-    toast({
-      title: "Template Duplicated",
-      description: "Email template has been duplicated successfully",
-    });
+  const handleDuplicateTemplate = async (template: EmailTemplate) => {
+    try {
+      const newTemplate = {
+        name: `${template.name} (Copy)`,
+        subject: template.subject,
+        description: template.description,
+        type: template.type,
+        content: template.content,
+        variables: template.variables,
+      };
+      await emailTemplatesApi.create(newTemplate);
+      toast({
+        title: "Template Duplicated",
+        description: "Email template has been duplicated successfully",
+      });
+      loadTemplates();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to duplicate email template",
+        variant: "destructive",
+      });
+    }
   };
 
   const getTypeColor = (type: string) => {
