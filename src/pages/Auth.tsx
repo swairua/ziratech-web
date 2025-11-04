@@ -80,7 +80,12 @@ const Auth = () => {
       }
 
       // Get role
-      const roleUrl = new URL(API_URL);
+      let roleUrl: URL;
+      try {
+        roleUrl = /^https?:\/\//i.test(API_URL) ? new URL(API_URL) : new URL(API_URL, window.location.origin);
+      } catch (err) {
+        roleUrl = new URL(`${API_URL}?table=user_roles`, window.location.origin);
+      }
       roleUrl.searchParams.set('table', 'user_roles');
       roleUrl.searchParams.set('user_id', String(user.id));
       const roleResp = await fetch(roleUrl.toString(), { method: 'GET', headers: { 'Content-Type': 'application/json' } });
