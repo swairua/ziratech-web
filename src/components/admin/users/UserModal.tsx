@@ -149,10 +149,24 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
       })
     });
 
-    const result = await response.json();
-    
+    const responseText = await response.text();
+
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to create user');
+      let errorMsg = 'Failed to create user';
+      try {
+        const result = JSON.parse(responseText);
+        errorMsg = result.error || errorMsg;
+      } catch {
+        errorMsg = responseText || errorMsg;
+      }
+      throw new Error(errorMsg);
+    }
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      throw new Error('Invalid response format from server');
     }
 
     return result;
