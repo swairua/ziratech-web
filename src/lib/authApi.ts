@@ -32,16 +32,25 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
-  let text: string;
+  let text: string | null = null;
+
+  // Prefer reading from a clone (safest), otherwise fall back to original response
   try {
-    text = await response.text();
-  } catch (e) {
-    console.error('Failed to read response body', e);
-    throw new Error(`API Error: ${status}`);
+    const cloned = response.clone();
+    text = await cloned.text();
+  } catch (cloneErr) {
+    // clone may fail if body already read; try reading original
+    try {
+      text = await response.text();
+    } catch (readErr) {
+      console.error('Failed to read response body (cloneErr, readErr):', cloneErr, readErr);
+      throw new Error(`API Error: unable to read response body (status ${status})`);
+    }
   }
 
   const contentType = response.headers.get('content-type') || '';
   const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
+
   if (!contentType.includes('application/json')) {
     console.error('API returned non-JSON response:', snippet);
     if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
