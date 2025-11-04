@@ -1,11 +1,31 @@
-Options -MultiViews
-RewriteEngine On
-RewriteBase /
+# .htaccess for Apache (place in site webroot/public or root depending on setup)
+# - Serve existing files normally
+# - Route API endpoints to api.php
+# - Route serve_upload.php through PHP
+# - Fallback all other requests to index.html for SPA
 
-# If the requested resource exists as a file or directory, serve it
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
+<IfModule mod_rewrite.c>
+  RewriteEngine On
 
-# Otherwise, serve index.html for SPA routes
-RewriteRule . /index.html [L]
+  # Ensure PHP executed (disable sending source)
+  AddType application/x-httpd-php .php
+
+  # Allow direct access to existing files
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # Route API endpoints to api.php
+  RewriteRule ^api.php$ api.php [L]
+  RewriteRule ^serve_upload.php$ serve_upload.php [L]
+  RewriteRule ^uploads/ - [L]
+
+  # SPA fallback: route everything else to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Security: deny execution in uploads if using public/uploads (prefer storage/uploads)
+<IfModule mod_authz_core.c>
+  <Directory "${DOCUMENT_ROOT}/uploads">
+    Require all granted
+  </Directory>
+</IfModule>
