@@ -112,7 +112,7 @@ const FeaturedProducts = () => {
                 {product.price && (
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold text-brand-orange">
-                      ${parseFloat(product.price.toString()).toFixed(2)}
+                      {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 2 }).format(Number(product.price))}
                     </span>
                   </div>
                 )}
@@ -120,8 +120,28 @@ const FeaturedProducts = () => {
                 <Button
                   variant="outline"
                   className="w-full border-brand-orange text-brand-orange hover:bg-brand-orange hover:text-white transition-colors"
+                  onClick={() => {
+                    try {
+                      const prefill = {
+                        service: product.name,
+                        message: `I would like a quote for ${product.name}. Please get in touch.`
+                      };
+                      localStorage.setItem('contact_prefill', JSON.stringify(prefill));
+                    } catch (e) {
+                      // ignore storage errors
+                    }
+                    // Navigate to contact section on the same page
+                    if (window.location.pathname !== '/') {
+                      window.location.href = '/#contact';
+                    } else {
+                      const el = document.getElementById('contact');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      // Also set hash
+                      window.location.hash = '#contact';
+                    }
+                  }}
                 >
-                  Learn More
+                  Request Quote
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </CardContent>

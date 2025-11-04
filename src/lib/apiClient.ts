@@ -1,4 +1,4 @@
-const API_BASE = "https://zira-tech.com/api.php";
+const API_BASE = '/api.php';
 
 interface ApiResponse<T> {
   data?: T;
@@ -56,20 +56,24 @@ async function apiCall<T>(
 
     // Try to parse response as JSON
     try {
+      // Ensure content-type is JSON
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await safeResponse.text();
+        const snippet = text.slice(0, 300).replace(/\s+/g, ' ');
+        console.error('Non-JSON API response:', snippet);
+        if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
+          return { error: 'Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.' };
+        }
+        return { error: 'Invalid response format from API' };
+      }
+
       data = await safeResponse.json();
     } catch (parseError) {
-      // If JSON parsing fails, it could be:
-      // 1. Empty response
-      // 2. HTML error page (from proxy/server on 500 error)
-      // 3. Plain text error message
       console.error('Failed to parse response as JSON:', parseError?.toString(), 'Status:', status);
-
-      // Return appropriate error based on status
       if (!ok) {
         return { error: `API Error: ${status}` };
       }
-
-      // Response was ok but couldn't parse - might be empty or invalid format
       return { error: 'Invalid response format from API' };
     }
 

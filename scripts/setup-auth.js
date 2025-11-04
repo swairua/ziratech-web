@@ -2,7 +2,8 @@
 
 import crypto from 'crypto';
 
-const API_URL = "https://zira-tech.com/api.php";
+const API_URL = process.env.API_URL || "https://zira-tech.com/api.php";
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 // Simple password hashing (in production, use bcrypt)
 function hashPassword(password) {
@@ -17,6 +18,11 @@ async function makeRequest(method, tableName, payload = null) {
         "Content-Type": "application/json",
       },
     };
+
+    // Attach admin token header when present (required for DDL operations)
+    if (ADMIN_TOKEN) {
+      options.headers['X-Admin-Token'] = ADMIN_TOKEN;
+    }
 
     if (payload) {
       options.body = JSON.stringify(payload);

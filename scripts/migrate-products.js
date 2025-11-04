@@ -6,7 +6,8 @@
  * and seeds it with sample data
  */
 
-const API_URL = "https://zira-tech.com/api.php";
+const API_URL = process.env.API_URL || "https://zira-tech.com/api.php";
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const TABLE_NAME = "products";
 
 const sampleProducts = [
@@ -56,6 +57,11 @@ async function makeRequest(method, payload = null) {
         "Content-Type": "application/json",
       },
     };
+
+    // Attach admin token when available for DDL operations
+    if (ADMIN_TOKEN) {
+      options.headers['X-Admin-Token'] = ADMIN_TOKEN;
+    }
 
     if (payload) {
       options.body = JSON.stringify(payload);
