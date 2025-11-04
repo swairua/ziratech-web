@@ -24,9 +24,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
-import { authApi } from '@/lib/authApi';
 import { Search, MoreHorizontal, Eye, Mail, Download, Archive, Clock } from 'lucide-react';
 
 interface FormSubmission {
@@ -66,40 +65,37 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      
-      let query = supabase
-        .from('form_submissions')
-        .select('*')
-        .order('created_at', { ascending: false });
+
+      const params: Record<string, any> = {};
 
       // Apply form type filter
       if (formType !== 'all') {
         if (formType === 'business') {
-          query = query.in('form_type', ['demo_booking', 'start_journey', 'partnership', 'support']);
+          params.form_types = ['demo_booking', 'start_journey', 'partnership', 'support'].join(',');
         } else if (formType === 'platforms') {
-          query = query.in('form_type', ['zira_web', 'zira_lock', 'zira_sms']);
+          params.form_types = ['zira_web', 'zira_lock', 'zira_sms'].join(',');
         } else {
-          query = query.eq('form_type', formType);
+          params.form_type = formType;
         }
       }
 
       // Apply search filter
       if (searchQuery) {
-        query = query.or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,company.ilike.%${searchQuery}%`);
+        params.search = searchQuery;
       }
 
       // Apply status filter
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        params.status = statusFilter;
       }
 
-      const { data, error } = await query;
+      const response = await api.formSubmissions.list(params);
 
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw new Error(response.error);
       }
 
-      setSubmissions(data || []);
+      setSubmissions(response.data || []);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -113,20 +109,10 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
 
   const handleStatusUpdate = async (submissionId: string, newStatus: string) => {
     try {
-      const session = await authApi.getSession();
-      const userId = session?.user.id?.toString() || 'unknown';
+      const response = await api.formSubmissions.updateStatus(submissionId, newStatus);
 
-      const { error } = await supabase
-        .from('form_submissions')
-        .update({
-          status: newStatus,
-          handled_at: new Date().toISOString(),
-          handled_by: userId
-        })
-        .eq('id', submissionId);
-
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw new Error(response.error);
       }
 
       toast({
