@@ -149,9 +149,17 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
       })
     });
 
+    // Clone response immediately to avoid "body stream already read" errors
+    let safeResponse: Response;
+    try {
+      safeResponse = response.clone();
+    } catch (e) {
+      throw new Error('Failed to read response from server');
+    }
+
     let result;
     try {
-      result = await response.json();
+      result = await safeResponse.json();
     } catch (parseError) {
       throw new Error('Invalid response format from server');
     }
