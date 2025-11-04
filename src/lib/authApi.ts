@@ -43,8 +43,22 @@ async function handleResponse<T>(response: Response): Promise<T> {
     try {
       text = await response.text();
     } catch (readErr) {
-      console.error('Failed to read response body (cloneErr, readErr):', cloneErr, readErr);
-      throw new Error(`API Error: unable to read response body (status ${status})`);
+      // If both fail due to body already read, attempt a simple retry GET (only safe for GET requests)
+      const msg = String(cloneErr?.message || readErr?.message || 'unknown');
+      console.warn('Initial response body read failed:', msg);
+      if (response.url && msg.toLowerCase().includes('body') && response.type !== 'error') {
+        try {
+          const retryResp = await fetch(response.url, { method: 'GET', headers: { 'Content-Type': 'application/json' }, cache: 'no-store' });
+          const retryText = await retryResp.text();
+          text = retryText;
+        } catch (retryErr) {
+          console.error('Retry fetch failed:', retryErr);
+          throw new Error(`API Error: unable to read response body (status ${status})`);
+        }
+      } else {
+        console.error('Failed to read response body (cloneErr, readErr):', cloneErr, readErr);
+        throw new Error(`API Error: unable to read response body (status ${status})`);
+      }
     }
   }
 
@@ -52,11 +66,18 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
 
   if (!contentType.includes('application/json')) {
-    console.error('API returned non-JSON response:', snippet);
-    if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
-      throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
+    // If we retried, content-type may be on retry response; try to detect from snippet
+    if (!contentType || !contentType.includes('application/json')) {
+      if (snippet.trim().startsWith('{') || snippet.trim().startsWith('[')) {
+        // proceed with parsing
+      } else {
+        console.error('API returned non-JSON response:', snippet);
+        if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
+          throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
+        }
+        throw new Error('API Error: Invalid response format');
+      }
     }
-    throw new Error('API Error: Invalid response format');
   }
 
   let data: any;
