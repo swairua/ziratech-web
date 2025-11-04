@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { MoreHorizontal, Edit, Trash2, Shield, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,18 +51,11 @@ export const UserList = ({ searchQuery, roleFilter, statusFilter, onEditUser }: 
     // Fetch current user's role to gate admin-only actions
     const fetchCurrentUserRole = async () => {
       if (!currentUser?.id) return;
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false })
-        .maybeSingle();
-
-      if (error) {
-        console.warn('Failed to fetch current user role:', error);
-        setIsAdmin(false);
+      const roleResponse = await api.userRoles.get(String(currentUser.id));
+      if (!roleResponse.error && roleResponse.data) {
+        setIsAdmin(roleResponse.data.role === 'admin');
       } else {
-        setIsAdmin((data?.role as string) === 'admin');
+        setIsAdmin(false);
       }
     };
     fetchCurrentUserRole();
@@ -76,40 +69,26 @@ export const UserList = ({ searchQuery, roleFilter, statusFilter, onEditUser }: 
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('profiles')
-        .select(`
-          id,
-          user_id,
-          full_name,
-          company_email,
-          status,
-          last_login_at,
-          created_at,
-          avatar_url
-        `);
-
+      const params: Record<string, any> = {};
       if (searchQuery) {
-        query = query.or(`full_name.ilike.%${searchQuery}%,company_email.ilike.%${searchQuery}%`);
+        params.search = searchQuery;
       }
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        params.status = statusFilter;
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) throw error;
-
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-      if (rolesError) {
-        console.warn('Failed to fetch roles:', rolesError);
+      const response = await api.profiles.list(params);
+      if (response.error) {
+        throw new Error(response.error);
       }
 
+      const rolesResponse = await api.userRoles.list();
       const roleMap = new Map();
-      rolesData?.forEach(r => roleMap.set(r.user_id, r.role));
+      if (rolesResponse.data && Array.isArray(rolesResponse.data)) {
+        rolesResponse.data.forEach((r: any) => roleMap.set(r.user_id, r.role));
+      }
 
-      let transformedUsers = data?.map(u => ({
+      let transformedUsers = (response.data as any[])?.map(u => ({
         id: u.user_id,
         email: u.company_email || '',
         full_name: u.full_name,
@@ -160,12 +139,9 @@ export const UserList = ({ searchQuery, roleFilter, statusFilter, onEditUser }: 
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-        body: { userId },
-      });
-
-      if (error) {
-        throw error;
+      const response = await api.userRoles.delete(userId);
+      if (response.error) {
+        throw new Error(response.error);
       }
 
       toast({
@@ -186,13 +162,9 @@ export const UserList = ({ searchQuery, roleFilter, statusFilter, onEditUser }: 
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('user_id', userId);
-
-      if (error) {
-        throw error;
+      const response = await api.profiles.update(userId, { status: newStatus });
+      if (response.error) {
+        throw new Error(response.error);
       }
 
       toast({
