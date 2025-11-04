@@ -36,10 +36,12 @@ async function apiCall<T>(
 
     const response = await fetch(url.toString(), options);
 
+    // Read response body once
+    const responseText = await response.text();
+
     // Check if response is ok first
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error ${response.status}:`, errorText);
+      console.error(`API Error ${response.status}:`, responseText);
       return { error: `API Error: ${response.status}` };
     }
 
@@ -50,7 +52,6 @@ async function apiCall<T>(
       return { error: 'Invalid response format from API' };
     }
 
-    const responseText = await response.text();
     if (!responseText) {
       return { error: 'Empty response from API' };
     }
