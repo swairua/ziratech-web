@@ -17,14 +17,23 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
-  // Check Content-Type before parsing
-  const contentType = response.headers.get('content-type') || '';
+  // Clone response immediately to avoid "body stream already read" errors
+  let safeResponse: Response;
+  try {
+    safeResponse = response.clone();
+  } catch (e) {
+    console.error('Response body already consumed:', status);
+    throw new Error(`API Error: ${status}`);
+  }
+
+  // Check Content-Type before parsing (use cloned response)
+  const contentType = safeResponse.headers.get('content-type') || '';
 
   // If content-type isn't JSON, read text and provide a useful error
   if (!contentType.includes('application/json')) {
     let text;
     try {
-      text = await response.text();
+      text = await safeResponse.text();
     } catch (e) {
       console.error('Failed to read non-JSON response body', e);
       throw new Error(`API returned non-JSON response (status ${status})`);
@@ -38,15 +47,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
     }
 
     throw new Error('Invalid JSON response from API');
-  }
-
-  // Clone response immediately to avoid "body stream already read" errors
-  let safeResponse: Response;
-  try {
-    safeResponse = response.clone();
-  } catch (e) {
-    console.error('Response body already consumed:', status);
-    throw new Error(`API Error: ${status}`);
   }
 
   let data;
