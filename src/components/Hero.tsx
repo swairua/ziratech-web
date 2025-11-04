@@ -19,12 +19,15 @@ const Hero = () => {
       {/* Background */}
       <div className="absolute inset-0 z-0">
         <img
-          src={AFRICAN_HERO_BANNER}
+          src={imgSrc}
           alt="African Technology Landscape"
           className="w-full h-full object-cover opacity-40"
           loading="lazy"
           width={1600}
           height={970}
+          onError={() => {
+            if (imgSrc !== HERO_FALLBACK) setImgSrc(HERO_FALLBACK);
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/40 via-black/30 to-brand-orange/25"></div>
       </div>
