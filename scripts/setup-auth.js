@@ -2,7 +2,8 @@
 
 import crypto from 'crypto';
 
-const API_URL = "https://zira-tech.com/api.php";
+const API_URL = process.env.API_URL || "https://zira-tech.com/api.php";
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 // Simple password hashing (in production, use bcrypt)
 function hashPassword(password) {
