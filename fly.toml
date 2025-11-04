@@ -3,16 +3,7 @@ app = "ziratech"
 primary_region = "sjc"
 
 [build]
-  builder = "paket"
-
-[build.args]
-  VITE_API_URL = "https://zira-tech.com/api.php"
-
-[env]
-  VITE_API_URL = "https://zira-tech.com/api.php"
-
-[env.production]
-  VITE_API_URL = "https://zira-tech.com/api.php"
+  builder = "docker"
 
 [[services]]
   internal_port = 8080
