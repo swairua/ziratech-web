@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { EmailTemplates } from './EmailTemplates';
 import { AutomationRules } from './AutomationRules';
 import { EmailSettings } from './EmailSettings';
+import { automationRulesApi, emailTemplatesApi } from '@/lib/apiClient';
 import { 
   Mail, 
   Send, 
@@ -12,80 +13,44 @@ import {
   Users, 
   Settings as SettingsIcon,
   Zap,
-  AlertCircle,
-  CheckCircle,
-  Eye,
-  Edit,
-  Plus,
-  FileText,
-  BarChart3
+  Loader
 } from 'lucide-react';
-
-const emailTemplates = [
-  {
-    id: 'form_confirmation',
-    name: 'Form Confirmation',
-    description: 'Automatic confirmation sent to users after form submission',
-    trigger: 'Form Submission',
-    status: 'active',
-    lastSent: '2 hours ago',
-    totalSent: 156
-  },
-  {
-    id: 'admin_alert',
-    name: 'Admin Alert',
-    description: 'Notification to admin when new form is submitted',
-    trigger: 'Form Submission',
-    status: 'active',
-    lastSent: '2 hours ago',
-    totalSent: 156
-  },
-  {
-    id: 'user_welcome',
-    name: 'Welcome Email',
-    description: 'Welcome email for new user registrations',
-    trigger: 'User Registration',
-    status: 'inactive',
-    lastSent: 'Never',
-    totalSent: 0
-  }
-];
-
-const automationRules = [
-  {
-    id: 'contact_form',
-    name: 'Contact Form Automation',
-    description: 'Send confirmation to user and alert to admin on contact form submission',
-    enabled: true,
-    triggers: ['contact_form_submission'],
-    actions: ['send_user_confirmation', 'send_admin_alert']
-  },
-  {
-    id: 'career_application',
-    name: 'Career Application Automation',
-    description: 'Process career applications with HR notifications',
-    enabled: true,
-    triggers: ['career_form_submission'],
-    actions: ['send_application_confirmation', 'notify_hr_team']
-  }
-];
 
 export const EmailAutomation = () => {
   const [activeTab, setActiveTab] = useState('templates');
+  const [stats, setStats] = useState({
+    totalTemplates: 0,
+    activeRules: 0,
+    totalRules: 0,
+    averageSendTime: 0,
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
   const { toast } = useToast();
 
-  const handleToggleTemplate = (templateId: string, enabled: boolean) => {
-    toast({
-      title: "Template Updated",
-      description: `Template ${enabled ? 'activated' : 'deactivated'} successfully`,
-    });
-  };
+  useEffect(() => {
+    loadStats();
+  }, []);
 
-  const handleToggleAutomation = (ruleId: string, enabled: boolean) => {
-    toast({
-      title: "Automation Updated",
-      description: `Automation rule ${enabled ? 'enabled' : 'disabled'} successfully`,
-    });
+  const loadStats = async () => {
+    setIsLoadingStats(true);
+    try {
+      const templatesResponse = await emailTemplatesApi.list();
+      const rulesResponse = await automationRulesApi.list();
+
+      const templates = Array.isArray(templatesResponse.data) ? templatesResponse.data : [];
+      const rules = Array.isArray(rulesResponse.data) ? rulesResponse.data : [];
+      const activeRules = rules.filter((r: any) => r.is_active).length;
+
+      setStats({
+        totalTemplates: templates.length,
+        activeRules: activeRules,
+        totalRules: rules.length,
+        averageSendTime: 2.4,
+      });
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    }
+    setIsLoadingStats(false);
   };
 
   return (
@@ -97,71 +62,81 @@ export const EmailAutomation = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {isLoadingStats ? (
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Mail className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-brand-navy">312</p>
-                <p className="text-sm text-muted-foreground">Emails Sent Today</p>
-              </div>
+            <div className="flex items-center justify-center">
+              <Loader className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
+              <p className="text-muted-foreground">Loading statistics...</p>
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <Mail className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-brand-navy">{stats.totalTemplates}</p>
+                  <p className="text-sm text-muted-foreground">Email Templates</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <Zap className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-brand-navy">{stats.activeRules}</p>
+                  <p className="text-sm text-muted-foreground">Active Rules</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-brand-navy">98.5%</p>
-                <p className="text-sm text-muted-foreground">Delivery Rate</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-orange-100">
-                <Zap className="h-5 w-5 text-brand-orange" />
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-orange-100">
+                  <Send className="h-5 w-5 text-brand-orange" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-brand-navy">{stats.totalRules}</p>
+                  <p className="text-sm text-muted-foreground">Total Rules</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-brand-navy">5</p>
-                <p className="text-sm text-muted-foreground">Active Automations</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Clock className="h-5 w-5 text-purple-600" />
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-purple-100">
+                  <Clock className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-brand-navy">{stats.averageSendTime}s</p>
+                  <p className="text-sm text-muted-foreground">Avg. Send Time</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-brand-navy">2.4s</p>
-                <p className="text-sm text-muted-foreground">Avg. Send Time</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="templates">Email Templates</TabsTrigger>
           <TabsTrigger value="automations">Automation Rules</TabsTrigger>
           <TabsTrigger value="settings">Email Settings</TabsTrigger>
-          <TabsTrigger value="logs">Activity Logs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="templates" className="space-y-6">
@@ -174,51 +149,6 @@ export const EmailAutomation = () => {
 
         <TabsContent value="settings" className="space-y-6">
           <EmailSettings />
-        </TabsContent>
-
-        <TabsContent value="logs" className="space-y-6">
-          <h2 className="text-xl font-semibold text-brand-navy">Activity Logs</h2>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {[
-                  { type: 'sent', email: 'john@example.com', template: 'Form Confirmation', time: '2 minutes ago', status: 'delivered' },
-                  { type: 'sent', email: 'admin@ziratechnologies.com', template: 'New Form Alert', time: '5 minutes ago', status: 'delivered' },
-                  { type: 'opened', email: 'jane@example.com', template: 'Welcome Email', time: '10 minutes ago', status: 'opened' },
-                  { type: 'sent', email: 'contact@example.com', template: 'Form Confirmation', time: '15 minutes ago', status: 'delivered' },
-                  { type: 'clicked', email: 'mike@example.com', template: 'Newsletter', time: '1 hour ago', status: 'clicked' },
-                  { type: 'bounced', email: 'invalid@email.com', template: 'Form Confirmation', time: '2 hours ago', status: 'bounced' },
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-3 h-3 rounded-full ${
-                        activity.status === 'delivered' ? 'bg-green-500' : 
-                        activity.status === 'opened' ? 'bg-blue-500' : 
-                        activity.status === 'clicked' ? 'bg-purple-500' :
-                        activity.status === 'bounced' ? 'bg-red-500' : 'bg-gray-400'
-                      }`}></div>
-                      <div>
-                        <div className="font-medium">{activity.email}</div>
-                        <div className="text-sm text-muted-foreground">{activity.template}</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm">{activity.time}</div>
-                      <div className={`text-xs px-2 py-1 rounded-full ${
-                        activity.status === 'delivered' ? 'bg-green-100 text-green-800' : 
-                        activity.status === 'opened' ? 'bg-blue-100 text-blue-800' :
-                        activity.status === 'clicked' ? 'bg-purple-100 text-purple-800' :
-                        activity.status === 'bounced' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {activity.status}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
