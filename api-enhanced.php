@@ -31,7 +31,7 @@ $input  = json_decode(file_get_contents("php://input"), true) ?? [];
 $table  = $_GET['table'] ?? null;
 $action = $_GET['action'] ?? null;
 
-if (!$table && !isset($input['drop_table']) && !isset($input['create_table'])) {
+if (!$table && !isset($input['drop_table']) && !isset($input['create_table']) && $action !== 'upload_image') {
     echo json_encode(["error" => "Table name is required"]);
     exit;
 }

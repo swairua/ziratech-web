@@ -57,16 +57,21 @@ const AdminFeaturedProducts = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('https://zira-tech.com/api.php?action=upload_image', {
+      const response = await fetch('https://zira-tech.com/api.php?action=upload_image&table=products', {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Upload failed: ${response.status}`);
+      }
 
       if (data.error) {
         throw new Error(data.error);
