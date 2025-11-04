@@ -35,16 +35,44 @@ async function apiCall<T>(
     }
 
     const response = await fetch(url.toString(), options);
-    const data = await response.json();
 
-    if (!response.ok || data.error) {
-      return { error: data.error || `API Error: ${response.status}` };
+    // Check if response is ok first
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error ${response.status}:`, errorText);
+      return { error: `API Error: ${response.status}` };
+    }
+
+    // Check if response has content
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('Invalid content type:', contentType);
+      return { error: 'Invalid response format from API' };
+    }
+
+    const responseText = await response.text();
+    if (!responseText) {
+      return { error: 'Empty response from API' };
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Response:', responseText);
+      return { error: 'Failed to parse API response' };
+    }
+
+    if (data.error) {
+      return { error: data.error };
     }
 
     return data as ApiResponse<T>;
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    console.error('API call error:', errorMsg);
     return {
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: errorMsg,
     };
   }
 }
