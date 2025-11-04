@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { appSettingsApi, notificationSettingsApi, useAuth } from '@/lib/apiClient';
+import { appSettingsApi, notificationSettingsApi } from '@/lib/apiClient';
 import { 
   Settings, 
   Shield, 
