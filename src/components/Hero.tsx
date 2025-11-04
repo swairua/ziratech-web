@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Zap, Shield, Globe2 } from "lucide-react";
-// Use optimized CDN image for hero background
-const AFRICAN_HERO_BANNER = "https://cdn.builder.io/api/v1/image/assets%2F150a78d67a964e7687264c9806aa58ae%2F6bf90dacd92e49de87d411f713341609?format=webp&width=1600";
+// Use the attached hero image with local fallback
+const AFRICAN_HERO_BANNER = "https://cdn.builder.io/api/v1/image/assets%2F150a78d67a964e7687264c9806aa58ae%2Fd55dfda64db7428d8c64aaf38fcca3bf?format=webp&width=800";
+const HERO_FALLBACK = "/placeholder.svg";
 
 const Hero = () => {
+  const [imgSrc, setImgSrc] = useState<string>(AFRICAN_HERO_BANNER);
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -16,12 +19,15 @@ const Hero = () => {
       {/* Background */}
       <div className="absolute inset-0 z-0">
         <img
-          src={AFRICAN_HERO_BANNER}
+          src={imgSrc}
           alt="African Technology Landscape"
           className="w-full h-full object-cover opacity-40"
           loading="lazy"
           width={1600}
           height={970}
+          onError={() => {
+            if (imgSrc !== HERO_FALLBACK) setImgSrc(HERO_FALLBACK);
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/40 via-black/30 to-brand-orange/25"></div>
       </div>
