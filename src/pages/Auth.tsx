@@ -81,10 +81,11 @@ const Auth = () => {
         });
       }
     } catch (error) {
+      console.error('Password reset error:', error);
       toast({
         variant: "destructive",
         title: "Reset Failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: "Password reset failed. Please contact support.",
       });
     } finally {
       setIsLoading(false);
