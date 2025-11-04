@@ -90,11 +90,11 @@ const BlogPost = () => {
 
       setPost(formattedPost);
 
-      // Update view count
+      // Update view count (best-effort)
       try {
-        await api.blogPosts.incrementViewCount(data.id);
+        const newViews = (Number(data.view_count) || 0) + 1;
+        await api.blogPosts.update(data.id, { view_count: newViews });
       } catch (err) {
-        // View count update failed, but don't stop the page from loading
         console.log('Failed to update view count');
       }
 
