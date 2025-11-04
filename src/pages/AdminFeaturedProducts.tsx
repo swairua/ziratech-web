@@ -158,22 +158,15 @@ const AdminFeaturedProducts = () => {
     setShowForm(true);
   };
 
-  const handleDeleteProduct = async (productId: string) => {
+  const handleDeleteProduct = async (productId: number) => {
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productId);
+      await productsAPI.delete(productId);
 
-      if (error) {
-        toast.error('Failed to delete product');
-      } else {
-        toast.success('Product deleted successfully');
-        setDeleteConfirm(null);
-        fetchProducts();
-      }
+      toast.success('Product deleted successfully');
+      setDeleteConfirm(null);
+      fetchProducts();
     } catch (err) {
-      toast.error('An error occurred');
+      toast.error('Failed to delete product');
       console.error(err);
     }
   };
