@@ -46,15 +46,18 @@ async function apiCall<T>(
     try {
       data = await response.json();
     } catch (parseError) {
-      // If JSON parsing fails, try to get text representation
-      console.error('Failed to parse response as JSON:', parseError, 'Status:', status);
+      // If JSON parsing fails, it could be:
+      // 1. Empty response
+      // 2. HTML error page (from proxy/server on 500 error)
+      // 3. Plain text error message
+      console.error('Failed to parse response as JSON:', parseError?.toString(), 'Status:', status);
 
-      // If we can't parse as JSON and response is not ok, return status error
+      // Return appropriate error based on status
       if (!ok) {
         return { error: `API Error: ${status}` };
       }
 
-      // If response was ok but unparseable, return error
+      // Response was ok but couldn't parse - might be empty or invalid format
       return { error: 'Invalid response format from API' };
     }
 
