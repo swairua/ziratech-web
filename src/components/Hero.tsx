@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Zap, Shield, Globe2 } from "lucide-react";
-import africanHeroBanner from "@/assets/african-hero-banner.jpg";
+// Use optimized CDN image for hero background
+const AFRICAN_HERO_BANNER = "https://cdn.builder.io/api/v1/image/assets%2F150a78d67a964e7687264c9806aa58ae%2F6bf90dacd92e49de87d411f713341609?format=webp&width=1600";
 
 const Hero = () => {
   const scrollToSection = (sectionId: string) => {
