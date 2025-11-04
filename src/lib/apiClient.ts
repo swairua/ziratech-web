@@ -413,6 +413,8 @@ export const api = {
   products: productsApi,
   emailTemplates: emailTemplatesApi,
   automationRules: automationRulesApi,
+  appSettings: appSettingsApi,
+  notificationSettings: notificationSettingsApi,
 };
 
 export default api;
