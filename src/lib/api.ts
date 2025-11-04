@@ -1,4 +1,4 @@
-const API_BASE = '/api.php';
+const API_BASE = (import.meta.env.VITE_API_URL as string) || '/api.php';
 
 export interface Product {
   id: number;
@@ -17,43 +17,32 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
-  // Check Content-Type before parsing
-  const contentType = response.headers.get('content-type') || '';
-
-  // If content-type isn't JSON, read text and provide a useful error
-  if (!contentType.includes('application/json')) {
-    let text;
-    try {
-      text = await response.text();
-    } catch (e) {
-      console.error('Failed to read non-JSON response body', e);
-      throw new Error(`API returned non-JSON response (status ${status})`);
-    }
-    const snippet = text.slice(0, 300).replace(/\s+/g, ' ');
-    console.error('API returned non-JSON response:', snippet);
-
-    // Detect common case where PHP source is returned (PHP not executed) or HTML error page
-    if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<!DOCTYPE') || snippet.trim().startsWith('<html')) {
-      throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
-    }
-
-    throw new Error('Invalid JSON response from API');
-  }
-
-  // Clone response immediately to avoid "body stream already read" errors
-  let safeResponse: Response;
+  // Read full response body as text first to avoid clone errors
+  let text: string;
   try {
-    safeResponse = response.clone();
+    text = await response.text();
   } catch (e) {
-    console.error('Response body already consumed:', status);
+    console.error('Failed to read response body:', e);
     throw new Error(`API Error: ${status}`);
   }
 
-  let data;
+  const contentType = response.headers.get('content-type') || '';
+  const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
+
+  // If not JSON, detect PHP/HTML and return helpful error
+  if (!contentType.includes('application/json')) {
+    console.error('API returned non-JSON response:', snippet);
+    if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<!DOCTYPE') || snippet.trim().startsWith('<html')) {
+      throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
+    }
+    throw new Error('Invalid JSON response from API');
+  }
+
+  let data: any;
   try {
-    data = await safeResponse.json();
+    data = text ? JSON.parse(text) : null;
   } catch (parseError) {
-    console.error('Failed to parse response as JSON:', parseError, 'Status:', status);
+    console.error('Failed to parse response as JSON:', parseError, 'Snippet:', snippet);
     throw new Error(`Invalid JSON response from API (${status})`);
   }
 
@@ -84,18 +73,10 @@ export const productsAPI = {
   },
 
   async getFeatured(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE}?table=products`, { method: "GET" });
-    const all = await handleResponse<any>(response);
-    const list: Product[] = Array.isArray(all)
-      ? all
-      : Array.isArray(all?.data)
-      ? all.data
-      : Array.isArray(all?.rows)
-      ? all.rows
-      : [];
-    return list
-      .filter((p) => p.is_featured)
-      .sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
+    const response = await fetch(`${API_BASE}?table=products&action=featured`, { method: "GET" });
+    const data = await handleResponse<any>(response);
+    const list: Product[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : Array.isArray(data?.rows) ? data.rows : [];
+    return list.sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
   },
 
   async getById(id: number): Promise<Product> {

@@ -1,4 +1,4 @@
-const API_BASE = '/api.php';
+const API_BASE = (import.meta.env.VITE_API_URL as string) || '/api.php';
 
 interface ApiResponse<T> {
   data?: T;
@@ -37,13 +37,10 @@ async function apiCall<T>(
     const response = await fetch(url.toString(), options);
 
     // Clone response immediately to avoid "body stream already read" errors
-    // This ensures we can safely read the response even if something upstream read it
     let safeResponse: Response;
     try {
       safeResponse = response.clone();
     } catch (e) {
-      // If we can't clone, the body was already consumed
-      // Return error with status code only
       console.error('Response body already consumed before clone:', response.status);
       return { error: `API Error: ${response.status}` };
     }
@@ -52,25 +49,30 @@ async function apiCall<T>(
     const status = response.status;
     const ok = response.ok;
 
-    let data: any;
-
-    // Try to parse response as JSON
+    let text: string;
     try {
-      // Ensure content-type is JSON
-      const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        const text = await safeResponse.text();
-        const snippet = text.slice(0, 300).replace(/\s+/g, ' ');
-        console.error('Non-JSON API response:', snippet);
-        if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
-          return { error: 'Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.' };
-        }
-        return { error: 'Invalid response format from API' };
-      }
+      text = await response.text();
+    } catch (e) {
+      console.error('Failed to read response body:', e);
+      return { error: `API Error: ${response.status}` };
+    }
 
-      data = await safeResponse.json();
+    const contentType = response.headers.get('content-type') || '';
+    const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
+
+    if (!contentType.includes('application/json')) {
+      console.error('Non-JSON API response:', snippet);
+      if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
+        return { error: 'Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.' };
+      }
+      return { error: 'Invalid response format from API' };
+    }
+
+    let data: any;
+    try {
+      data = text ? JSON.parse(text) : null;
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError?.toString(), 'Status:', status);
+      console.error('Failed to parse response as JSON:', parseError?.toString(), 'Snippet:', snippet);
       if (!ok) {
         return { error: `API Error: ${status}` };
       }

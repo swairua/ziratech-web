@@ -1,4 +1,4 @@
-const API_BASE = '/api.php';
+const API_BASE = (import.meta.env.VITE_API_URL as string) || '/api.php';
 
 export interface AuthUser {
   id: number;
@@ -32,37 +32,59 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
-  const contentType = response.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) {
-    let text;
+  let text: string | null = null;
+
+  // Prefer reading from a clone (safest), otherwise fall back to original response
+  try {
+    const cloned = response.clone();
+    text = await cloned.text();
+  } catch (cloneErr) {
+    // clone may fail if body already read; try reading original
     try {
       text = await response.text();
-    } catch (e) {
-      console.error('Failed to read non-JSON response body', e);
-      throw new Error(`API Error: ${status}`);
+    } catch (readErr) {
+      // If both fail due to body already read, attempt a simple retry GET (only safe for GET requests)
+      const msg = String(cloneErr?.message || readErr?.message || 'unknown');
+      console.warn('Initial response body read failed:', msg);
+      if (response.url && msg.toLowerCase().includes('body') && response.type !== 'error') {
+        try {
+          const retryResp = await fetch(response.url, { method: 'GET', headers: { 'Content-Type': 'application/json' }, cache: 'no-store' });
+          const retryText = await retryResp.text();
+          text = retryText;
+        } catch (retryErr) {
+          console.error('Retry fetch failed:', retryErr);
+          throw new Error(`API Error: unable to read response body (status ${status})`);
+        }
+      } else {
+        console.error('Failed to read response body (cloneErr, readErr):', cloneErr, readErr);
+        throw new Error(`API Error: unable to read response body (status ${status})`);
+      }
     }
-    const snippet = text.slice(0, 300).replace(/\s+/g, ' ');
-    console.error('API returned non-JSON response:', snippet);
-    if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
-      throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
-    }
-    throw new Error('API Error: Invalid response format');
   }
 
-  // Clone response immediately to avoid "body stream already read" errors
-  let safeResponse: Response;
-  try {
-    safeResponse = response.clone();
-  } catch (e) {
-    console.error('Response body already consumed:', status);
-    throw new Error(`API Error: ${status}`);
+  const contentType = response.headers.get('content-type') || '';
+  const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
+
+  if (!contentType.includes('application/json')) {
+    // If we retried, content-type may be on retry response; try to detect from snippet
+    if (!contentType || !contentType.includes('application/json')) {
+      if (snippet.trim().startsWith('{') || snippet.trim().startsWith('[')) {
+        // proceed with parsing
+      } else {
+        console.error('API returned non-JSON response:', snippet);
+        if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<html') || snippet.trim().startsWith('<!DOCTYPE')) {
+          throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
+        }
+        throw new Error('API Error: Invalid response format');
+      }
+    }
   }
 
-  let data;
+  let data: any;
   try {
-    data = await safeResponse.json();
+    data = text ? JSON.parse(text) : null;
   } catch (parseError) {
-    console.error('Failed to parse response as JSON:', parseError, 'Status:', status);
+    console.error('Failed to parse response as JSON:', parseError, 'Snippet:', snippet);
     throw new Error(`API Error: Invalid response format (${status})`);
   }
 

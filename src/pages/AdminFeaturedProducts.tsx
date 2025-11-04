@@ -62,17 +62,20 @@ const AdminFeaturedProducts = () => {
         body: formData,
       });
 
-      // Try to extract any server-provided error details
+      // Try to extract any server-provided error details by reading text then parsing JSON
       let data: any = null;
+      let rawText = '';
       try {
-        data = await response.clone().json();
-      } catch (_) {
-        try {
-          const text = await response.clone().text();
-          if (text) console.error('Upload raw response:', text);
-        } catch (_) {
-          // ignore
+        rawText = await response.text();
+        if (rawText) {
+          try {
+            data = JSON.parse(rawText);
+          } catch (e) {
+            console.error('Upload raw response (non-JSON):', rawText.slice(0, 500));
+          }
         }
+      } catch (e) {
+        console.error('Failed to read upload response body:', e);
       }
 
       if (!response.ok) {

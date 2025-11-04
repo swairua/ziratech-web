@@ -38,7 +38,7 @@ $conn->set_charset('utf8mb4');
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 $table  = isset($_GET['table']) ? $_GET['table'] : null;
-action = isset($_GET['action']) ? $_GET['action'] : null;
+$action = isset($_GET['action']) ? $_GET['action'] : null;
 
 $allowed_tables = [
     'users','user_roles','profiles','activity_logs','blog_categories','blog_posts',

@@ -49,9 +49,45 @@ const FeaturedProducts = () => {
   }
 
   if (error) {
-    // Silently fail if there's an error - don't show the section
     console.warn('Featured Products Error:', error);
-    return null;
+    return (
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4 text-center">
+          <Badge variant="secondary" className="mb-6 px-6 py-3 text-white bg-brand-orange border-0 shadow-lg font-semibold text-sm tracking-wide uppercase">
+            Curated Selection
+          </Badge>
+          <h2 className="text-4xl md:text-5xl font-bold text-brand-navy mb-4">
+            Featured <span className="text-brand-orange">Products</span>
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+            We couldn't load featured products right now. Please check your connection or try again.
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                // refetch
+                (async () => {
+                  try {
+                    const data = await productsAPI.getFeatured();
+                    setProducts(data);
+                  } catch (e) {
+                    console.error('Retry failed:', e);
+                    setError('Failed to load featured products');
+                  } finally {
+                    setLoading(false);
+                  }
+                })();
+              }}
+            >
+              Retry
+            </Button>
+            <a href="#contact" className="text-brand-navy underline font-medium">Contact us</a>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   if (products.length === 0) {
