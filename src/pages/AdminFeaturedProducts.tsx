@@ -71,9 +71,9 @@ const AdminFeaturedProducts = () => {
     }
   };
 
-  const handleFeatureToggle = async (productId: string, currentState: boolean) => {
+  const handleFeatureToggle = async (productId: number, currentState: boolean) => {
     const newFeatured = new Set(featuredProducts);
-    
+
     if (!currentState) {
       if (newFeatured.size >= 4) {
         toast.error('Maximum 4 featured products allowed');
@@ -86,27 +86,20 @@ const AdminFeaturedProducts = () => {
 
     try {
       const order = !currentState ? Array.from(newFeatured).indexOf(productId) + 1 : null;
-      const { error } = await supabase
-        .from('products')
-        .update({
-          is_featured: !currentState,
-          featured_order: order,
-        })
-        .eq('id', productId);
+      await productsAPI.update(productId, {
+        is_featured: !currentState ? (1 as any) : (0 as any),
+        featured_order: order,
+      });
 
-      if (error) {
-        toast.error('Failed to update product');
-      } else {
-        setFeaturedProducts(newFeatured);
-        fetchProducts();
-        toast.success(
-          !currentState 
-            ? 'Product added to featured' 
-            : 'Product removed from featured'
-        );
-      }
+      setFeaturedProducts(newFeatured);
+      fetchProducts();
+      toast.success(
+        !currentState
+          ? 'Product added to featured'
+          : 'Product removed from featured'
+      );
     } catch (err) {
-      toast.error('An error occurred');
+      toast.error('Failed to update product');
       console.error(err);
     }
   };
