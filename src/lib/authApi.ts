@@ -29,30 +29,24 @@ function generateToken(): string {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  // Read response body as text once to avoid "body stream already read" error
-  let responseText = '';
-  try {
-    responseText = await response.text();
-  } catch (readError) {
-    console.error('Failed to read response body:', readError);
-    throw new Error(`API Error: ${response.status}`);
-  }
-
-  if (!response.ok) {
-    console.error(`API Error ${response.status}:`, responseText);
-    throw new Error(`API Error: ${response.status}`);
-  }
-
-  if (!responseText) {
-    throw new Error('Empty response from API');
-  }
+  const status = response.status;
+  const ok = response.ok;
 
   let data;
   try {
-    data = JSON.parse(responseText);
+    data = await response.json();
   } catch (parseError) {
-    console.error('Failed to parse response as JSON:', parseError);
-    throw new Error(`API Error: Invalid response format (${response.status})`);
+    console.error('Failed to parse response as JSON:', parseError, 'Status:', status);
+    throw new Error(`API Error: Invalid response format (${status})`);
+  }
+
+  if (!ok) {
+    console.error(`API Error ${status}:`, data);
+    throw new Error(`API Error: ${status}`);
+  }
+
+  if (!data) {
+    throw new Error('Empty response from API');
   }
 
   if (data.error) {
