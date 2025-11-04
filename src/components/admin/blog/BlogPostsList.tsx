@@ -109,29 +109,26 @@ export const BlogPostsList = ({ onEditPost }: BlogPostsListProps) => {
     try {
       const updateData: any = { status: newStatus };
 
-      // Set published_at when publishing
       if (newStatus === 'published') {
         updateData.published_at = new Date().toISOString();
       }
 
       const response = await api.blogPosts.update(postId, updateData);
+      if (response.error) throw new Error(response.error);
 
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      toast({
-        title: "Success",
-        description: `Post ${newStatus} successfully`,
+      // Audit log
+      await api.activityLogs.create({
+        user_id: null,
+        action: newStatus === 'published' ? 'blog_post_published' : (newStatus === 'draft' ? 'blog_post_unpublished' : 'blog_post_updated'),
+        table_name: 'blog_posts',
+        record_id: postId,
+        description: JSON.stringify({ status: newStatus })
       });
 
+      toast({ title: "Success", description: `Post ${newStatus} successfully` });
       fetchPosts();
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update post: " + error.message,
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to update post: " + error.message });
     }
   };
 
@@ -142,23 +139,21 @@ export const BlogPostsList = ({ onEditPost }: BlogPostsListProps) => {
 
     try {
       const response = await api.blogPosts.delete(postId);
+      if (response.error) throw new Error(response.error);
 
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      toast({
-        title: "Success",
-        description: "Post deleted successfully",
+      // Audit log
+      await api.activityLogs.create({
+        user_id: null,
+        action: 'blog_post_deleted',
+        table_name: 'blog_posts',
+        record_id: postId,
+        description: JSON.stringify({ title })
       });
 
+      toast({ title: "Success", description: "Post deleted successfully" });
       fetchPosts();
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete post: " + error.message,
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to delete post: " + error.message });
     }
   };
 
