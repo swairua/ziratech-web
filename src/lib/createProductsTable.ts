@@ -42,12 +42,6 @@ CREATE POLICY "Allow admins to manage products" ON products
   );
 `;
 
-export const openSupabaseSQL = () => {
-  const projectId = 'vzznvztokpdtlzcvojar';
-  const url = `https://app.supabase.com/project/${projectId}/sql/new`;
-  window.open(url, '_blank');
-};
-
 export const copySQLToClipboard = () => {
   navigator.clipboard.writeText(PRODUCTS_TABLE_SQL);
   return true;
