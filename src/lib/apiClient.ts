@@ -36,10 +36,22 @@ async function apiCall<T>(
 
     const response = await fetch(url.toString(), options);
 
+    // Clone response immediately to preserve the body stream
+    // (something may have already read it)
+    let bodyResponse: Response;
+    try {
+      bodyResponse = response.clone();
+    } catch (cloneError) {
+      // If clone fails, the body was already consumed
+      // Try to get what info we can from headers/status
+      console.error('Failed to clone response:', cloneError);
+      return { error: `API Error: ${response.status}` };
+    }
+
     // Read response body as text once (avoid "body stream already read" error)
     let responseText = '';
     try {
-      responseText = await response.text();
+      responseText = await bodyResponse.text();
     } catch (readError) {
       console.error('Failed to read response body:', readError);
       return { error: `API Error: ${response.status}` };
