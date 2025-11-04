@@ -29,18 +29,28 @@ function generateToken(): string {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    console.error(`API Error ${response.status}:`, responseText);
+    throw new Error(`API Error: ${response.status}`);
+  }
+
+  if (!responseText) {
+    throw new Error('Empty response from API');
+  }
+
   let data;
   try {
-    data = await response.json();
+    data = JSON.parse(responseText);
   } catch (err) {
-    console.error('Failed to parse response as JSON:', err);
+    console.error('Failed to parse response as JSON:', err, 'Response:', responseText);
     throw new Error(`API Error: Invalid response format (${response.status})`);
   }
 
-  if (!response.ok || data.error) {
-    const errorMsg = data.error || `API Error: ${response.status}`;
-    console.error('API Error:', errorMsg);
-    throw new Error(errorMsg);
+  if (data.error) {
+    console.error('API Error:', data.error);
+    throw new Error(data.error);
   }
 
   return data;
