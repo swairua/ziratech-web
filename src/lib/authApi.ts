@@ -42,8 +42,8 @@ export const authApi = {
   async login(email: string, password: string): Promise<AuthSession> {
     const passwordHash = await hashPassword(password);
 
-    // Fetch user by email
-    const response = await fetch(`${API_BASE}?table=users&email=${encodeURIComponent(email)}`, {
+    // Fetch all users and find by email
+    const response = await fetch(`${API_BASE}?table=users`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -54,7 +54,12 @@ export const authApi = {
       throw new Error('Invalid email or password');
     }
 
-    const user = users[0];
+    // Find user by email
+    const user = users.find((u: any) => u.email === email);
+
+    if (!user) {
+      throw new Error('Invalid email or password');
+    }
 
     // Verify password
     if (user.password_hash !== passwordHash) {
