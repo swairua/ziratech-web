@@ -17,43 +17,32 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const status = response.status;
   const ok = response.ok;
 
-  // Clone response immediately to avoid "body stream already read" errors
-  let safeResponse: Response;
+  // Read full response body as text first to avoid clone errors
+  let text: string;
   try {
-    safeResponse = response.clone();
+    text = await response.text();
   } catch (e) {
-    console.error('Response body already consumed:', status);
+    console.error('Failed to read response body:', e);
     throw new Error(`API Error: ${status}`);
   }
 
-  // Check Content-Type before parsing (use cloned response)
-  const contentType = safeResponse.headers.get('content-type') || '';
+  const contentType = response.headers.get('content-type') || '';
+  const snippet = (text || '').slice(0, 1000).replace(/\s+/g, ' ');
 
-  // If content-type isn't JSON, read text and provide a useful error
+  // If not JSON, detect PHP/HTML and return helpful error
   if (!contentType.includes('application/json')) {
-    let text;
-    try {
-      text = await safeResponse.text();
-    } catch (e) {
-      console.error('Failed to read non-JSON response body', e);
-      throw new Error(`API returned non-JSON response (status ${status})`);
-    }
-    const snippet = text.slice(0, 300).replace(/\s+/g, ' ');
     console.error('API returned non-JSON response:', snippet);
-
-    // Detect common case where PHP source is returned (PHP not executed) or HTML error page
     if (snippet.trim().startsWith('<?php') || snippet.trim().startsWith('<!DOCTYPE') || snippet.trim().startsWith('<html')) {
       throw new Error('Invalid JSON response from API — server returned HTML/PHP. Ensure the PHP backend is running and API_URL is correct.');
     }
-
     throw new Error('Invalid JSON response from API');
   }
 
-  let data;
+  let data: any;
   try {
-    data = await safeResponse.json();
+    data = text ? JSON.parse(text) : null;
   } catch (parseError) {
-    console.error('Failed to parse response as JSON:', parseError, 'Status:', status);
+    console.error('Failed to parse response as JSON:', parseError, 'Snippet:', snippet);
     throw new Error(`Invalid JSON response from API (${status})`);
   }
 
