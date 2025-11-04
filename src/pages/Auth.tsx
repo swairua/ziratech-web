@@ -132,10 +132,16 @@ const Auth = () => {
       });
       navigate('/admin/dashboard');
     } catch (error) {
+      const technical = error instanceof Error ? error : new Error(String(error));
+      console.error('Signup error:', technical);
+      const userMessage = /response body|API Error|Invalid JSON/i.test(technical.message)
+        ? 'Signup failed. Please try again.'
+        : technical.message || 'Signup failed. Please try again.';
+
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+        description: userMessage,
       });
     } finally {
       setIsLoading(false);
