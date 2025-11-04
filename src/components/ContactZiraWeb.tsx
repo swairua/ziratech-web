@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Send, Loader2, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/apiClient";
 
 const ContactZiraWeb = () => {
   const { toast } = useToast();
@@ -29,39 +29,22 @@ const ContactZiraWeb = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from('form_submissions')
-        .insert({
-          form_type: 'zira_web',
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          message: formData.message,
-          form_data: {
-            company: formData.company,
-            website_type: formData.website_type,
-            budget_range: formData.budget_range,
-            timeline: formData.timeline,
-            features_needed: formData.features_needed
-          }
-        });
+      const response = await api.formSubmissions.create({
+        form_type: 'zira_web',
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        message: formData.message,
+        form_data: {
+          company: formData.company,
+          website_type: formData.website_type,
+          budget_range: formData.budget_range,
+          timeline: formData.timeline,
+          features_needed: formData.features_needed
+        }
+      });
 
-      if (error) throw error;
-
-      try {
-        await supabase.functions.invoke('send-form-emails', {
-          body: {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            company: formData.company,
-            message: formData.message,
-            form_type: 'zira_web'
-          }
-        });
-      } catch (emailError) {
-        console.error('Error calling email function:', emailError);
-      }
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: "Website Project Inquiry Sent!",
