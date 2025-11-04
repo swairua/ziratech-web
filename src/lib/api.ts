@@ -1,4 +1,4 @@
-const API_BASE = '/api.php';
+const API_BASE = (import.meta.env.VITE_API_URL as string) || '/api.php';
 
 export interface Product {
   id: number;
