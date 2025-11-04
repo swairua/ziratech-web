@@ -352,6 +352,55 @@ export const automationRulesApi = {
   },
 };
 
+// App Settings
+export const appSettingsApi = {
+  async list() {
+    return apiCall("app_settings", "GET");
+  },
+
+  async get(key: string) {
+    return apiCall("app_settings", "GET", { setting_key: key });
+  },
+
+  async set(key: string, value: any) {
+    return apiCall("app_settings", "POST", undefined, {
+      setting_key: key,
+      setting_value: value,
+    });
+  },
+
+  async update(id: string, data: any) {
+    return apiCall("app_settings", "PUT", { id }, data);
+  },
+
+  async delete(id: string) {
+    return apiCall("app_settings", "DELETE", { id });
+  },
+};
+
+// Notification Settings
+export const notificationSettingsApi = {
+  async list() {
+    return apiCall("notification_settings", "GET");
+  },
+
+  async get(userId: string) {
+    return apiCall("notification_settings", "GET", { user_id: userId });
+  },
+
+  async create(data: any) {
+    return apiCall("notification_settings", "POST", undefined, data);
+  },
+
+  async update(userId: string, data: any) {
+    return apiCall("notification_settings", "PUT", { user_id: userId }, data);
+  },
+
+  async delete(userId: string) {
+    return apiCall("notification_settings", "DELETE", { user_id: userId });
+  },
+};
+
 // Export a unified API object for convenience
 export const api = {
   activityLogs: activityLogsApi,
