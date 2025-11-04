@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Zap, Shield, Globe2 } from "lucide-react";
-// Use optimized CDN image for hero background
+// Use optimized CDN image for hero background and local fallback
 const AFRICAN_HERO_BANNER = "https://cdn.builder.io/api/v1/image/assets%2F150a78d67a964e7687264c9806aa58ae%2F6bf90dacd92e49de87d411f713341609?format=webp&width=1600";
+const HERO_FALLBACK = "/placeholder.svg";
 
 const Hero = () => {
+  const [imgSrc, setImgSrc] = useState<string>(AFRICAN_HERO_BANNER);
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
