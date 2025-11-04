@@ -37,8 +37,29 @@ async function handleResponse<T>(response: Response): Promise<T> {
   try {
     text = await response.text();
   } catch (err) {
-    console.error('Failed to read response body:', err);
-    throw new Error(`API Error: unable to read response body (status ${status})`);
+    const errMsg = String((err as Error)?.message || err);
+    console.warn('Failed to read response body directly:', errMsg);
+
+    // Try reading from a clone if possible
+    try {
+      const cloned = response.clone();
+      text = await cloned.text();
+    } catch (cloneErr) {
+      console.warn('response.clone() failed:', String((cloneErr as Error)?.message || cloneErr));
+
+      // As a last resort, attempt a safe GET retry if we have a URL (only safe for GET endpoints)
+      if (response.url) {
+        try {
+          const retryResp = await fetch(response.url, { method: 'GET', headers: { 'Content-Type': 'application/json' }, cache: 'no-store' });
+          text = await retryResp.text();
+        } catch (retryErr) {
+          console.error('Retry fetch failed:', retryErr);
+          throw new Error(`API Error: unable to read response body (status ${status})`);
+        }
+      } else {
+        throw new Error(`API Error: unable to read response body (status ${status})`);
+      }
+    }
   }
 
   const contentType = response.headers.get('content-type') || '';
