@@ -41,6 +41,7 @@ const Index = () => {
       <Hero />
       <Platforms />
       <ZiraWebHighlight />
+      <RecentProjects />
       <Impact />
       <Contact />
       <Footer />
