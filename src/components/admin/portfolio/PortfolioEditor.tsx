@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +48,8 @@ const PortfolioEditor = ({ project, onClose }: PortfolioEditorProps) => {
   const [metricValue, setMetricValue] = useState('');
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [screenshotProvider, setScreenshotProvider] = useState('apiflash');
+
+  const suggestedWebTags = ['web', 'website', 'web app', 'landing', 'ecommerce', 'cms', 'responsive', 'ui/ux', 'frontend', 'backend'];
 
   const queryClient = useQueryClient();
 
