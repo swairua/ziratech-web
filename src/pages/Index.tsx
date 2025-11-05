@@ -1,6 +1,8 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Platforms from "@/components/Platforms";
+import ZiraWebHighlight from "@/components/ZiraWebHighlight";
+import RecentProjects from "@/components/RecentProjects";
 import Impact from "@/components/Impact";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
@@ -38,6 +40,8 @@ const Index = () => {
       <Header />
       <Hero />
       <Platforms />
+      <ZiraWebHighlight />
+      <RecentProjects />
       <Impact />
       <Contact />
       <Footer />

@@ -16,10 +16,10 @@ const Platforms = () => {
 
   const navigateToPlatform = (platformName: string) => {
     const routes = {
-      "Zira Homes": "/zira-homes",
-      "Zira Lock": "/zira-lock", 
-      "Zira SMS": "/zira-sms",
-      "Web Development": "/zira-web"
+      "Zira Homes": "/rental-management-kenya",
+      "Zira Lock": "/paygo-device-management",
+      "Zira SMS": "/bulk-sms-kenya",
+      "Web Development": "/web-development-kenya"
     };
     navigate(routes[platformName as keyof typeof routes]);
     window.scrollTo(0, 0);

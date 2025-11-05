@@ -109,6 +109,14 @@ const Header = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/web-development-kenya">Zira Web</Link>
                   </DropdownMenuItem>
+                  {user && (
+                    <>
+                      <div className="h-px bg-border my-2" />
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/portfolio" className="text-brand-orange">Admin: Manage Projects</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
              </DropdownMenu>
             <button 
@@ -137,8 +145,8 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {/* Context-aware CTA Button */}
             {(location.pathname === '/zira-homes' || location.pathname === '/rental-management-kenya') && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
                 asChild
               >
@@ -148,8 +156,8 @@ const Header = () => {
               </Button>
             )}
             {(location.pathname === '/zira-lock' || location.pathname === '/paygo-device-management') && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
               >
@@ -157,8 +165,8 @@ const Header = () => {
               </Button>
             )}
             {(location.pathname === '/zira-sms' || location.pathname === '/bulk-sms-kenya') && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
               >
@@ -166,8 +174,8 @@ const Header = () => {
               </Button>
             )}
             {(location.pathname === '/zira-web' || location.pathname === '/web-development-kenya') && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
               >
@@ -175,15 +183,41 @@ const Header = () => {
               </Button>
             )}
             {location.pathname === '/' && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
               >
                 Start Building
               </Button>
             )}
-            
+
+            {/* User Profile Dropdown */}
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="hidden md:flex">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                    {user.email}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/profile">Profile Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin">Admin Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             {/* Mobile Menu Button */}
             <Button
               variant="ghost"
@@ -200,7 +234,32 @@ const Header = () => {
         {isMenuOpen && (
           <nav className="md:hidden mt-4 pb-4 border-t border-border pt-4">
             <div className="flex flex-col space-y-4">
-              <button 
+              {user && (
+                <>
+                  <div className="px-0 py-2 border-b border-border">
+                    <p className="text-xs text-muted-foreground px-0 mb-2">{user.email}</p>
+                    <button
+                      onClick={() => {
+                        navigate('/admin/profile');
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-left text-foreground hover:text-brand-navy transition-colors text-sm"
+                    >
+                      Profile Settings
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/admin');
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-left text-foreground hover:text-brand-navy transition-colors text-sm block mt-2"
+                    >
+                      Admin Dashboard
+                    </button>
+                  </div>
+                </>
+              )}
+              <button
                 onClick={() => {
                   navigate('/');
                   setIsMenuOpen(false);
@@ -320,8 +379,8 @@ const Header = () => {
                 </Button>
               )}
               {location.pathname === '/' && (
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   onClick={() => {
                     scrollToSection('contact');
                     setIsMenuOpen(false);
@@ -329,6 +388,19 @@ const Header = () => {
                   className="w-full mt-4 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold"
                 >
                   Start Building
+                </Button>
+              )}
+              {user && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full mt-4"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
                 </Button>
               )}
             </div>
