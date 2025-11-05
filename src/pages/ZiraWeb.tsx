@@ -220,6 +220,26 @@ const ZiraWeb = () => {
         ogImage="https://ziratechnologies.com/assets/web-dev-dashboard.jpg"
       />
       <Header />
+
+      {/* Admin Management Banner */}
+      {user && isAdmin && (
+        <div className="bg-brand-orange/10 border-b border-brand-orange/20 py-3">
+          <div className="container mx-auto px-4 flex items-center justify-between">
+            <p className="text-sm font-medium text-brand-navy">
+              🔧 Admin Access: Manage portfolio projects from your dashboard
+            </p>
+            <Button
+              size="sm"
+              variant="default"
+              className="bg-brand-orange hover:bg-brand-orange/90 text-white"
+              onClick={() => navigate('/admin/portfolio')}
+            >
+              Manage Projects
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-brand-navy via-brand-navy/90 to-brand-orange/20 text-white py-20 overflow-hidden">
         <div className="container mx-auto px-4 relative z-10">
