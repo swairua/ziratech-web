@@ -137,8 +137,8 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {/* Context-aware CTA Button */}
             {(location.pathname === '/zira-homes' || location.pathname === '/rental-management-kenya') && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
                 asChild
               >
@@ -148,8 +148,8 @@ const Header = () => {
               </Button>
             )}
             {(location.pathname === '/zira-lock' || location.pathname === '/paygo-device-management') && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
               >
@@ -157,8 +157,8 @@ const Header = () => {
               </Button>
             )}
             {(location.pathname === '/zira-sms' || location.pathname === '/bulk-sms-kenya') && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
               >
@@ -166,8 +166,8 @@ const Header = () => {
               </Button>
             )}
             {(location.pathname === '/zira-web' || location.pathname === '/web-development-kenya') && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
               >
@@ -175,15 +175,41 @@ const Header = () => {
               </Button>
             )}
             {location.pathname === '/' && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
               >
                 Start Building
               </Button>
             )}
-            
+
+            {/* User Profile Dropdown */}
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="hidden md:flex">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                    {user.email}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/profile">Profile Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin">Admin Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             {/* Mobile Menu Button */}
             <Button
               variant="ghost"
