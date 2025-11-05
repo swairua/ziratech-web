@@ -674,24 +674,58 @@ const PortfolioEditor = ({ project, onClose }: PortfolioEditorProps) => {
             <Card>
               <CardHeader>
                 <CardTitle>Tags</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use tags like "web", "website", or "landing" to feature this project on /web-development-kenya
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <Input
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add tag"
+                    placeholder="Add tag (e.g., 'web', 'website', 'landing')"
                   />
                   <Button type="button" onClick={addTag}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
+
+                {/* Suggested Tags */}
+                {newTag.length === 0 && formData.tags.length < 5 && (
+                  <div className="bg-brand-orange/5 p-3 rounded border border-brand-orange/20">
+                    <p className="text-xs font-semibold text-brand-orange mb-2">Suggested tags:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedWebTags
+                        .filter(tag => !formData.tags.includes(tag))
+                        .map((tag) => (
+                          <Button
+                            key={tag}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (!formData.tags.includes(tag)) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  tags: [...prev.tags, tag]
+                                }));
+                              }
+                            }}
+                            className="text-xs"
+                          >
+                            + {tag}
+                          </Button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-2">
                   {formData.tags.map((tag) => (
                     <Badge key={tag} variant="outline" className="flex items-center gap-1">
                       {tag}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
+                      <X
+                        className="h-3 w-3 cursor-pointer"
                         onClick={() => removeTag(tag)}
                       />
                     </Badge>
