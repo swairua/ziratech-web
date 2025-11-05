@@ -39,7 +39,8 @@ import responsiveMockup from "@/assets/responsive-mockup.jpg";
 
 const ZiraWeb = () => {
   const navigate = useNavigate();
-  
+  const { user, isAdmin } = useAuth();
+
   const scrollToContact = () => {
     const element = document.getElementById('contact');
     if (element) {
