@@ -56,14 +56,16 @@ const PortfolioEditor = ({ project, onClose }: PortfolioEditorProps) => {
   const createMutation = useMutation({
     mutationFn: (data: any) => portfolioService.createProject(data),
     onSuccess: () => {
+      // Invalidate all portfolio-related queries to ensure UI updates everywhere
       queryClient.invalidateQueries({ queryKey: ['admin-portfolio-projects'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-portfolio-projects'] });
       toast.success('Project created successfully');
       onClose();
     },
     onError: (error: any) => {
       console.error('Error creating project:', error);
-      const message = error.message?.includes('duplicate') 
+      const message = error.message?.includes('duplicate')
         ? 'A project with this slug already exists. Please try again.'
         : 'Failed to create project';
       toast.error(message);
@@ -71,17 +73,21 @@ const PortfolioEditor = ({ project, onClose }: PortfolioEditorProps) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       portfolioService.updateProject(id, data),
     onSuccess: () => {
+      // Invalidate all portfolio-related queries to ensure UI updates everywhere
       queryClient.invalidateQueries({ queryKey: ['admin-portfolio-projects'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-portfolio-projects'] });
+      // Also invalidate specific project detail queries
+      queryClient.invalidateQueries({ queryKey: ['portfolio-project'] });
       toast.success('Project updated successfully');
       onClose();
     },
     onError: (error: any) => {
       console.error('Error updating project:', error);
-      const message = error.message?.includes('duplicate') 
+      const message = error.message?.includes('duplicate')
         ? 'A project with this slug already exists. Please try again.'
         : 'Failed to update project';
       toast.error(message);
