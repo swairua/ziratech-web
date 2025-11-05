@@ -379,8 +379,8 @@ const Header = () => {
                 </Button>
               )}
               {location.pathname === '/' && (
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   onClick={() => {
                     scrollToSection('contact');
                     setIsMenuOpen(false);
@@ -388,6 +388,19 @@ const Header = () => {
                   className="w-full mt-4 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold"
                 >
                   Start Building
+                </Button>
+              )}
+              {user && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full mt-4"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
                 </Button>
               )}
             </div>
