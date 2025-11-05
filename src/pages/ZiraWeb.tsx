@@ -376,7 +376,7 @@ const ZiraWeb = () => {
                   Recent Website Projects
                 </h3>
                 <p className="text-lg text-muted-foreground">
-                  Live examples from our portfolio
+                  Live examples from our portfolio — real projects showcasing our web development expertise
                 </p>
               </div>
 

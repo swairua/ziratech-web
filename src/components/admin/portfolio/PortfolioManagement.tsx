@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +27,11 @@ const PortfolioManagement = () => {
   const deleteProjectMutation = useMutation({
     mutationFn: portfolioService.deleteProject,
     onSuccess: () => {
+      // Invalidate all portfolio-related queries
       queryClient.invalidateQueries({ queryKey: ['admin-portfolio-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-portfolio-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio-project'] });
       toast.success('Project deleted successfully');
     },
     onError: (error) => {

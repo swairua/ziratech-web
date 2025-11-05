@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,19 +49,23 @@ const PortfolioEditor = ({ project, onClose }: PortfolioEditorProps) => {
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [screenshotProvider, setScreenshotProvider] = useState('apiflash');
 
+  const suggestedWebTags = ['web', 'website', 'web app', 'landing', 'ecommerce', 'cms', 'responsive', 'ui/ux', 'frontend', 'backend'];
+
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
     mutationFn: (data: any) => portfolioService.createProject(data),
     onSuccess: () => {
+      // Invalidate all portfolio-related queries to ensure UI updates everywhere
       queryClient.invalidateQueries({ queryKey: ['admin-portfolio-projects'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-portfolio-projects'] });
       toast.success('Project created successfully');
       onClose();
     },
     onError: (error: any) => {
       console.error('Error creating project:', error);
-      const message = error.message?.includes('duplicate') 
+      const message = error.message?.includes('duplicate')
         ? 'A project with this slug already exists. Please try again.'
         : 'Failed to create project';
       toast.error(message);
@@ -70,17 +73,21 @@ const PortfolioEditor = ({ project, onClose }: PortfolioEditorProps) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       portfolioService.updateProject(id, data),
     onSuccess: () => {
+      // Invalidate all portfolio-related queries to ensure UI updates everywhere
       queryClient.invalidateQueries({ queryKey: ['admin-portfolio-projects'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-portfolio-projects'] });
+      // Also invalidate specific project detail queries
+      queryClient.invalidateQueries({ queryKey: ['portfolio-project'] });
       toast.success('Project updated successfully');
       onClose();
     },
     onError: (error: any) => {
       console.error('Error updating project:', error);
-      const message = error.message?.includes('duplicate') 
+      const message = error.message?.includes('duplicate')
         ? 'A project with this slug already exists. Please try again.'
         : 'Failed to update project';
       toast.error(message);
@@ -673,24 +680,58 @@ const PortfolioEditor = ({ project, onClose }: PortfolioEditorProps) => {
             <Card>
               <CardHeader>
                 <CardTitle>Tags</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use tags like "web", "website", or "landing" to feature this project on /web-development-kenya
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <Input
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add tag"
+                    placeholder="Add tag (e.g., 'web', 'website', 'landing')"
                   />
                   <Button type="button" onClick={addTag}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
+
+                {/* Suggested Tags */}
+                {newTag.length === 0 && formData.tags.length < 5 && (
+                  <div className="bg-brand-orange/5 p-3 rounded border border-brand-orange/20">
+                    <p className="text-xs font-semibold text-brand-orange mb-2">Suggested tags:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedWebTags
+                        .filter(tag => !formData.tags.includes(tag))
+                        .map((tag) => (
+                          <Button
+                            key={tag}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (!formData.tags.includes(tag)) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  tags: [...prev.tags, tag]
+                                }));
+                              }
+                            }}
+                            className="text-xs"
+                          >
+                            + {tag}
+                          </Button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-2">
                   {formData.tags.map((tag) => (
                     <Badge key={tag} variant="outline" className="flex items-center gap-1">
                       {tag}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
+                      <X
+                        className="h-3 w-3 cursor-pointer"
                         onClick={() => removeTag(tag)}
                       />
                     </Badge>
