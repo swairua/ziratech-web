@@ -234,7 +234,32 @@ const Header = () => {
         {isMenuOpen && (
           <nav className="md:hidden mt-4 pb-4 border-t border-border pt-4">
             <div className="flex flex-col space-y-4">
-              <button 
+              {user && (
+                <>
+                  <div className="px-0 py-2 border-b border-border">
+                    <p className="text-xs text-muted-foreground px-0 mb-2">{user.email}</p>
+                    <button
+                      onClick={() => {
+                        navigate('/admin/profile');
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-left text-foreground hover:text-brand-navy transition-colors text-sm"
+                    >
+                      Profile Settings
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/admin');
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-left text-foreground hover:text-brand-navy transition-colors text-sm block mt-2"
+                    >
+                      Admin Dashboard
+                    </button>
+                  </div>
+                </>
+              )}
+              <button
                 onClick={() => {
                   navigate('/');
                   setIsMenuOpen(false);
