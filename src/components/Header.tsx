@@ -109,6 +109,14 @@ const Header = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/web-development-kenya">Zira Web</Link>
                   </DropdownMenuItem>
+                  {user && (
+                    <>
+                      <div className="h-px bg-border my-2" />
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/portfolio" className="text-brand-orange">Admin: Manage Projects</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
              </DropdownMenu>
             <button 
