@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -289,14 +290,14 @@ export const EmailTemplates = () => {
               <div className="text-sm text-gray-600">Subject: Thank you for your submission</div>
             </div>
             <div className="prose max-w-none" dangerouslySetInnerHTML={{ 
-              __html: mockTemplates[0].content.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
+              __html: DOMPurify.sanitize(mockTemplates[0].content.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
                 const sampleData: Record<string, string> = {
                   name: 'John Doe',
                   email: 'john@example.com',
                   message: "I'm interested in your services."
                 };
                 return sampleData[variable] || match;
-              })
+              }))
             }} />
           </div>
         </DialogContent>

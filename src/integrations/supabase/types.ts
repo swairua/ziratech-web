@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -47,6 +47,39 @@ export type Database = {
           resource_type?: string | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      affiliates: {
+        Row: {
+          code: string
+          commission_rate: number | null
+          contact_email: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          commission_rate?: number | null
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          commission_rate?: number | null
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -172,8 +205,238 @@ export type Database = {
         }
         Relationships: []
       }
+      email_automation_rules: {
+        Row: {
+          conditions: Json | null
+          created_at: string
+          created_by: string | null
+          custom_recipient: string | null
+          delay_minutes: number | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          recipient_type: string
+          sender_id: string | null
+          sent_count: number | null
+          template_id: string | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          custom_recipient?: string | null
+          delay_minutes?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          recipient_type: string
+          sender_id?: string | null
+          sent_count?: number | null
+          template_id?: string | null
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          custom_recipient?: string | null
+          delay_minutes?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          recipient_type?: string
+          sender_id?: string | null
+          sent_count?: number | null
+          template_id?: string | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_automation_rules_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "email_senders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_automation_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_events: {
+        Row: {
+          clicked_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          recipient_email: string
+          rule_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_id: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email: string
+          rule_id?: string | null
+          sent_at?: string | null
+          status: string
+          subject: string
+          template_id?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email?: string
+          rule_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "email_automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_senders: {
+        Row: {
+          created_at: string
+          from_email: string
+          from_name: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          reply_to: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_email: string
+          from_name: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          reply_to?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_email?: string
+          from_name?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          reply_to?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          subject: string
+          template_type: string
+          updated_at: string
+          variables: string[] | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          subject: string
+          template_type: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string
+          template_type?: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
+          affiliate_code: string | null
+          attribution: Json
           company: string | null
           created_at: string | null
           cv_file_url: string | null
@@ -188,11 +451,16 @@ export type Database = {
           name: string
           phone: string | null
           position: string | null
+          promo_code: string | null
+          promotion_id: string | null
+          session_id: string | null
           status: string | null
           updated_at: string | null
           user_agent: string | null
         }
         Insert: {
+          affiliate_code?: string | null
+          attribution?: Json
           company?: string | null
           created_at?: string | null
           cv_file_url?: string | null
@@ -207,11 +475,16 @@ export type Database = {
           name: string
           phone?: string | null
           position?: string | null
+          promo_code?: string | null
+          promotion_id?: string | null
+          session_id?: string | null
           status?: string | null
           updated_at?: string | null
           user_agent?: string | null
         }
         Update: {
+          affiliate_code?: string | null
+          attribution?: Json
           company?: string | null
           created_at?: string | null
           cv_file_url?: string | null
@@ -226,9 +499,178 @@ export type Database = {
           name?: string
           phone?: string | null
           position?: string | null
+          promo_code?: string | null
+          promotion_id?: string | null
+          session_id?: string | null
           status?: string | null
           updated_at?: string | null
           user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      offer_events: {
+        Row: {
+          affiliate_code: string | null
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json
+          page_path: string
+          promo_code: string | null
+          promotion_id: string
+          session_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          affiliate_code?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json
+          page_path: string
+          promo_code?: string | null
+          promotion_id: string
+          session_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          affiliate_code?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json
+          page_path?: string
+          promo_code?: string | null
+          promotion_id?: string
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_events_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_projects: {
+        Row: {
+          author_id: string | null
+          client: string | null
+          country: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          featured: boolean
+          featured_order: number | null
+          gallery_urls: string[] | null
+          id: string
+          industry: string | null
+          live_url: string | null
+          metrics: Json | null
+          repo_url: string | null
+          results_summary: string | null
+          short_description: string
+          slug: string
+          status: Database["public"]["Enums"]["project_status"]
+          tags: string[] | null
+          technologies: string[] | null
+          title: string
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          client?: string | null
+          country?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          featured?: boolean
+          featured_order?: number | null
+          gallery_urls?: string[] | null
+          id?: string
+          industry?: string | null
+          live_url?: string | null
+          metrics?: Json | null
+          repo_url?: string | null
+          results_summary?: string | null
+          short_description: string
+          slug: string
+          status?: Database["public"]["Enums"]["project_status"]
+          tags?: string[] | null
+          technologies?: string[] | null
+          title: string
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          author_id?: string | null
+          client?: string | null
+          country?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          featured?: boolean
+          featured_order?: number | null
+          gallery_urls?: string[] | null
+          id?: string
+          industry?: string | null
+          live_url?: string | null
+          metrics?: Json | null
+          repo_url?: string | null
+          results_summary?: string | null
+          short_description?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["project_status"]
+          tags?: string[] | null
+          technologies?: string[] | null
+          title?: string
+          updated_at?: string
+          year?: number | null
         }
         Relationships: []
       }
@@ -268,6 +710,111 @@ export type Database = {
         }
         Relationships: []
       }
+      promotions: {
+        Row: {
+          background_color: string | null
+          button_color: string | null
+          button_text: string | null
+          code: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          expires_at: string | null
+          id: string
+          max_displays_per_user: number | null
+          offer_text: string
+          popup_size: string
+          status: Database["public"]["Enums"]["promotion_status"]
+          target_pages: string[] | null
+          text_color: string | null
+          theme: string
+          title: string
+          trigger_type: Database["public"]["Enums"]["promotion_trigger"]
+          trigger_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          background_color?: string | null
+          button_color?: string | null
+          button_text?: string | null
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          id?: string
+          max_displays_per_user?: number | null
+          offer_text: string
+          popup_size?: string
+          status?: Database["public"]["Enums"]["promotion_status"]
+          target_pages?: string[] | null
+          text_color?: string | null
+          theme?: string
+          title: string
+          trigger_type?: Database["public"]["Enums"]["promotion_trigger"]
+          trigger_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          background_color?: string | null
+          button_color?: string | null
+          button_text?: string | null
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          id?: string
+          max_displays_per_user?: number | null
+          offer_text?: string
+          popup_size?: string
+          status?: Database["public"]["Enums"]["promotion_status"]
+          target_pages?: string[] | null
+          text_color?: string | null
+          theme?: string
+          title?: string
+          trigger_type?: Database["public"]["Enums"]["promotion_trigger"]
+          trigger_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_consent: {
+        Row: {
+          consent_categories: Json
+          consent_timestamp: string
+          id: string
+          ip_address: unknown | null
+          last_updated: string
+          session_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          consent_categories?: Json
+          consent_timestamp?: string
+          id?: string
+          ip_address?: unknown | null
+          last_updated?: string
+          session_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          consent_categories?: Json
+          consent_timestamp?: string
+          id?: string
+          ip_address?: unknown | null
+          last_updated?: string
+          session_id?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -303,14 +850,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_consent_records: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
       has_role: {
         Args: {
-          user_uuid: string
           required_role: Database["public"]["Enums"]["user_role"]
+          user_uuid: string
         }
         Returns: boolean
       }
@@ -320,16 +871,27 @@ export type Database = {
       }
       log_user_activity: {
         Args: {
-          p_user_id: string
           p_action: string
-          p_resource_type?: string
-          p_resource_id?: string
           p_details?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+          p_user_id: string
         }
         Returns: string
       }
+      validate_session_access: {
+        Args: { record_session_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
+      project_status: "draft" | "published" | "archived"
+      promotion_status: "draft" | "active" | "paused" | "expired"
+      promotion_trigger:
+        | "page_load"
+        | "exit_intent"
+        | "scroll_percentage"
+        | "time_delay"
       user_role: "admin" | "hr" | "editor" | "support_agent" | "user"
     }
     CompositeTypes: {
@@ -458,6 +1020,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      project_status: ["draft", "published", "archived"],
+      promotion_status: ["draft", "active", "paused", "expired"],
+      promotion_trigger: [
+        "page_load",
+        "exit_intent",
+        "scroll_percentage",
+        "time_delay",
+      ],
       user_role: ["admin", "hr", "editor", "support_agent", "user"],
     },
   },

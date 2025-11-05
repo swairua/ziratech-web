@@ -20,7 +20,7 @@ const Auth = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate('/admin/dashboard');
+        navigate('/admin');
       }
     };
     checkUser();
@@ -70,7 +70,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "You have been successfully logged in.",
         });
-        navigate('/admin/dashboard');
+        navigate('/admin');
       }
     } catch (error) {
       toast({
@@ -92,7 +92,7 @@ const Auth = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/admin/dashboard`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
@@ -195,7 +195,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Zira Technologies</CardTitle>
           <CardDescription>Access your company dashboard</CardDescription>

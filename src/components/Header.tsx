@@ -36,34 +36,24 @@ const Header = () => {
   };
 
   const scrollToSection = (sectionId: string) => {
-    // For platform pages, scroll to section on current page
-    const platformPages = ['/zira-homes', '/zira-lock', '/zira-sms', '/zira-web'];
-    if (platformPages.includes(location.pathname) && sectionId === 'contact') {
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
+    // First check if the section exists on the current page
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
       setIsMenuOpen(false);
       return;
     }
-
-    // For other sections, navigate to home page first
+    
+    // If section doesn't exist on current page, navigate to home
     if (location.pathname !== '/') {
       navigate('/');
       // Use setTimeout to ensure navigation completes before scrolling
       setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
+        const homeElement = document.getElementById(sectionId);
+        if (homeElement) {
+          homeElement.scrollIntoView({ behavior: 'smooth' });
         }
       }, 100);
-      return;
-    }
-
-    // If we're on home page, scroll to section
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
     }
     setIsMenuOpen(false);
   };
@@ -106,20 +96,20 @@ const Header = () => {
                  Platforms
                  <ChevronDown className="ml-1 h-4 w-4" />
                </DropdownMenuTrigger>
-               <DropdownMenuContent>
-                 <DropdownMenuItem asChild>
-                   <Link to="/zira-homes">Zira Homes</Link>
-                 </DropdownMenuItem>
-                 <DropdownMenuItem asChild>
-                   <Link to="/zira-lock">Zira Lock</Link>
-                 </DropdownMenuItem>
-                 <DropdownMenuItem asChild>
-                   <Link to="/zira-sms">Zira SMS</Link>
-                 </DropdownMenuItem>
-                 <DropdownMenuItem asChild>
-                   <Link to="/zira-web">Zira Web</Link>
-                 </DropdownMenuItem>
-               </DropdownMenuContent>
+                <DropdownMenuContent>
+                  <DropdownMenuItem asChild>
+                    <Link to="/rental-management-kenya">Zira Homes</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/paygo-device-management">Zira Lock</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/bulk-sms-kenya">Zira SMS</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/web-development-kenya">Zira Web</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
              </DropdownMenu>
             <button 
               onClick={() => scrollToSection('impact')}
@@ -146,16 +136,18 @@ const Header = () => {
 
           <div className="flex items-center space-x-4">
             {/* Context-aware CTA Button */}
-            {location.pathname === '/zira-homes' && (
+            {(location.pathname === '/zira-homes' || location.pathname === '/rental-management-kenya') && (
               <Button 
                 variant="default" 
-                onClick={() => scrollToSection('contact')}
                 className="hidden md:inline-flex bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6"
+                asChild
               >
-                Get Zira Homes
+                <a href="https://www.zira-homes.com/" target="_blank" rel="noopener noreferrer">
+                  Get Zira Homes
+                </a>
               </Button>
             )}
-            {location.pathname === '/zira-lock' && (
+            {(location.pathname === '/zira-lock' || location.pathname === '/paygo-device-management') && (
               <Button 
                 variant="default" 
                 onClick={() => scrollToSection('contact')}
@@ -164,7 +156,7 @@ const Header = () => {
                 Secure My Devices
               </Button>
             )}
-            {location.pathname === '/zira-sms' && (
+            {(location.pathname === '/zira-sms' || location.pathname === '/bulk-sms-kenya') && (
               <Button 
                 variant="default" 
                 onClick={() => scrollToSection('contact')}
@@ -173,7 +165,7 @@ const Header = () => {
                 Start Messaging
               </Button>
             )}
-            {location.pathname === '/zira-web' && (
+            {(location.pathname === '/zira-web' || location.pathname === '/web-development-kenya') && (
               <Button 
                 variant="default" 
                 onClick={() => scrollToSection('contact')}
@@ -221,7 +213,7 @@ const Header = () => {
                 <div className="text-sm font-medium text-muted-foreground mb-2">Platforms</div>
                 <button 
                   onClick={() => {
-                    navigate('/zira-homes');
+                    navigate('/rental-management-kenya');
                     setIsMenuOpen(false);
                   }}
                   className="block text-left text-foreground hover:text-brand-navy transition-colors"
@@ -230,7 +222,7 @@ const Header = () => {
                 </button>
                 <button 
                   onClick={() => {
-                    navigate('/zira-lock');
+                    navigate('/paygo-device-management');
                     setIsMenuOpen(false);
                   }}
                   className="block text-left text-foreground hover:text-brand-navy transition-colors"
@@ -239,7 +231,7 @@ const Header = () => {
                 </button>
                 <button 
                   onClick={() => {
-                    navigate('/zira-sms');
+                    navigate('/bulk-sms-kenya');
                     setIsMenuOpen(false);
                   }}
                   className="block text-left text-foreground hover:text-brand-navy transition-colors"
@@ -248,7 +240,7 @@ const Header = () => {
                 </button>
                 <button 
                   onClick={() => {
-                    navigate('/zira-web');
+                    navigate('/web-development-kenya');
                     setIsMenuOpen(false);
                   }}
                   className="block text-left text-foreground hover:text-brand-navy transition-colors"
@@ -279,19 +271,19 @@ const Header = () => {
                 Careers
               </button>
               {/* Context-aware CTA Button for mobile */}
-              {location.pathname === '/zira-homes' && (
+              {(location.pathname === '/zira-homes' || location.pathname === '/rental-management-kenya') && (
                 <Button 
                   variant="default" 
-                  onClick={() => {
-                    scrollToSection('contact');
-                    setIsMenuOpen(false);
-                  }}
                   className="w-full mt-4 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold"
+                  onClick={() => setIsMenuOpen(false)}
+                  asChild
                 >
-                  Get Zira Homes
+                  <a href="https://www.zira-homes.com/" target="_blank" rel="noopener noreferrer">
+                    Get Zira Homes
+                  </a>
                 </Button>
               )}
-              {location.pathname === '/zira-lock' && (
+              {(location.pathname === '/zira-lock' || location.pathname === '/paygo-device-management') && (
                 <Button 
                   variant="default" 
                   onClick={() => {
@@ -303,7 +295,7 @@ const Header = () => {
                   Secure My Devices
                 </Button>
               )}
-              {location.pathname === '/zira-sms' && (
+              {(location.pathname === '/zira-sms' || location.pathname === '/bulk-sms-kenya') && (
                 <Button 
                   variant="default" 
                   onClick={() => {
@@ -315,7 +307,7 @@ const Header = () => {
                   Start Messaging
                 </Button>
               )}
-              {location.pathname === '/zira-web' && (
+              {(location.pathname === '/zira-web' || location.pathname === '/web-development-kenya') && (
                 <Button 
                   variant="default" 
                   onClick={() => {

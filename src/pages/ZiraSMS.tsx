@@ -20,19 +20,31 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import StartYourJourneyModal from "@/components/StartYourJourneyModal";
+import DemoBookingModal from "@/components/DemoBookingModal";
 import ContactZiraSMS from "@/components/ContactZiraSMS";
+import SEO from "@/components/SEO";
 
 const ZiraSMS = () => {
-  const scrollToContact = () => {
-    const element = document.getElementById('contact');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Zira SMS - Bulk SMS Kenya",
+    "description": "Affordable bulk SMS solutions for businesses in Kenya. Send marketing messages, notifications, and alerts with high delivery rates and branded sender IDs.",
+    "applicationCategory": "CommunicationSoftware",
+    "operatingSystem": "Web-based",
+    "offers": {
+      "@type": "Offer",
+      "price": "0.40",
+      "priceCurrency": "KES"
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "Zira Technologies"
     }
   };
 
-  const scrollToPricing = () => {
-    const element = document.getElementById('pricing');
+  const scrollToContact = () => {
+    const element = document.getElementById('contact');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
@@ -150,6 +162,14 @@ const ZiraSMS = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Bulk SMS Kenya for Businesses | Zira SMS"
+        description="Reach customers instantly with Zira SMS. Affordable bulk SMS solutions with branded sender IDs, scheduling, analytics, and high open rates for marketing in Kenya."
+        keywords="bulk SMS Kenya, business SMS solutions, SMS marketing platform Kenya, send bulk SMS to customers, affordable bulk SMS packages, SMS gateway Kenya"
+        canonical="https://ziratechnologies.com/bulk-sms-kenya"
+        schema={productSchema}
+        ogImage="https://ziratechnologies.com/assets/zira-sms-dashboard.jpg"
+      />
       <Header />
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-brand-navy via-brand-navy/90 to-brand-orange/20 text-white py-24 overflow-hidden">
@@ -162,14 +182,14 @@ const ZiraSMS = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6 bg-brand-orange/20 text-white border-brand-orange/30 px-4 py-2 text-sm font-medium">
-              🇰🇪 Kenya's Leading SMS Platform
+              🇰🇪 Bulk SMS Kenya Platform
             </Badge>
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-white to-brand-orange bg-clip-text text-transparent leading-tight">
-              Zira SMS
+              Bulk SMS Kenya
             </h1>
             <p className="text-xl md:text-2xl mb-10 text-white/90 max-w-3xl mx-auto leading-relaxed">
               Reach every customer instantly with <span className="text-brand-orange font-semibold">98% delivery rates</span> across all Kenyan networks. 
-              From flash sales to appointment reminders - your message delivered in seconds.
+              Affordable bulk SMS solutions for business SMS marketing, customer notifications, and automated messaging campaigns.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-8">
               <Button 
@@ -185,7 +205,7 @@ const ZiraSMS = () => {
                   <ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-2 transition-transform duration-300" />
                 </span>
               </Button>
-              <StartYourJourneyModal platform="Zira SMS">
+              <DemoBookingModal platform="Zira SMS">
                 <Button 
                   size="lg" 
                   variant="hero"
@@ -198,7 +218,7 @@ const ZiraSMS = () => {
                     <ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-2 transition-transform duration-300" />
                   </span>
                 </Button>
-              </StartYourJourneyModal>
+              </DemoBookingModal>
             </div>
             
             {/* Trust Indicators */}
@@ -340,7 +360,7 @@ const ZiraSMS = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20">
+      <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-foreground mb-4">
@@ -419,11 +439,11 @@ const ZiraSMS = () => {
                 Start Free Trial
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button
-                size="lg"
+              <Button 
+                size="lg" 
                 variant="hero"
                 className="border-2 border-white bg-white/10 text-white hover:bg-white hover:text-brand-navy backdrop-blur-sm text-lg px-10 py-6 rounded-xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition-all duration-300 group"
-                onClick={scrollToPricing}
+                onClick={scrollToContact}
               >
                 View Pricing
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />

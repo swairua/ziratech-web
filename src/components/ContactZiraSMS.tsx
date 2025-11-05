@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Send, Loader2, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PromoCodeField } from "@/components/PromoCodeField";
 
 const ContactZiraSMS = () => {
   const { toast } = useToast();
@@ -19,7 +20,8 @@ const ContactZiraSMS = () => {
     company: "",
     business_type: "",
     monthly_volume: "",
-    message: ""
+    message: "",
+    promoCode: ""
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,7 +40,8 @@ const ContactZiraSMS = () => {
           form_data: {
             company: formData.company,
             business_type: formData.business_type,
-            monthly_volume: formData.monthly_volume
+            monthly_volume: formData.monthly_volume,
+            promo_code: formData.promoCode
           }
         });
 
@@ -52,6 +55,8 @@ const ContactZiraSMS = () => {
             phone: formData.phone,
             company: formData.company,
             message: formData.message,
+            business_type: formData.business_type,
+            monthly_volume: formData.monthly_volume,
             form_type: 'zira_sms'
           }
         });
@@ -71,7 +76,8 @@ const ContactZiraSMS = () => {
         company: "",
         business_type: "",
         monthly_volume: "",
-        message: ""
+        message: "",
+        promoCode: ""
       });
     } catch (error) {
       console.error("Error submitting Zira SMS form:", error);
@@ -106,7 +112,7 @@ const ContactZiraSMS = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
           {/* Contact Form */}
           <Card className="border-0 shadow-2xl bg-white">
             <CardHeader>
@@ -119,8 +125,8 @@ const ContactZiraSMS = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name" className="text-brand-navy font-semibold">Full Name</Label>
                     <Input 
@@ -146,7 +152,7 @@ const ContactZiraSMS = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="phone" className="text-brand-navy font-semibold">Phone Number</Label>
                     <Input 
@@ -172,7 +178,7 @@ const ContactZiraSMS = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="business_type" className="text-brand-navy font-semibold">Business Type</Label>
                     <Select value={formData.business_type} onValueChange={value => handleInputChange("business_type", value)}>
@@ -223,7 +229,12 @@ const ContactZiraSMS = () => {
                   />
                 </div>
 
-                <Button 
+                <PromoCodeField 
+                  value={formData.promoCode}
+                  onChange={(value) => handleInputChange("promoCode", value)}
+                />
+
+                <Button
                   type="submit" 
                   disabled={isSubmitting}
                   className="w-full bg-brand-orange hover:bg-brand-orange-dark text-white py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50"

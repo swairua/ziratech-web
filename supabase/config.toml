@@ -1,7 +1,19 @@
 project_id = "vzznvztokpdtlzcvojar"
 
 [functions.send-form-emails]
-verify_jwt = false
+verify_jwt = true
+
+[functions.secure-cv-upload]
+verify_jwt = true
+
+[functions.send-test-email]
+verify_jwt = true
 
 [functions.admin-create-user]
+verify_jwt = true
+
+[functions.admin-delete-user]
+verify_jwt = true
+
+[functions.portfolio-cover]
 verify_jwt = true

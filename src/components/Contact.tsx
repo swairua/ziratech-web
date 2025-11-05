@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PromoCodeField } from "@/components/PromoCodeField";
 const Contact = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,7 +17,8 @@ const Contact = () => {
     email: "",
     phone: "",
     service: "",
-    message: ""
+    message: "",
+    promoCode: ""
   });
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +35,8 @@ const Contact = () => {
           phone: formData.phone || null,
           message: formData.message,
           form_data: {
-            service_interest: formData.service
+            service_interest: formData.service,
+            promo_code: formData.promoCode
           }
         });
 
@@ -48,6 +51,7 @@ const Contact = () => {
             phone: formData.phone,
             company: "", // Not collected in this form
             message: formData.message,
+            service_interest: formData.service,
             form_type: 'contact'
           }
         });
@@ -70,7 +74,8 @@ const Contact = () => {
         email: "",
         phone: "",
         service: "",
-        message: ""
+        message: "",
+        promoCode: ""
       });
     } catch (error) {
       console.error("Error submitting contact form:", error);
@@ -102,7 +107,7 @@ const Contact = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
           {/* Contact Form */}
           <Card className="border-0 shadow-2xl bg-white">
             <CardHeader>
@@ -112,8 +117,8 @@ const Contact = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name" className="text-brand-navy font-semibold">Name</Label>
                     <Input id="name" value={formData.name} onChange={e => handleInputChange("name", e.target.value)} placeholder="Your full name" className="border-2 focus:border-brand-orange" required />
@@ -149,6 +154,11 @@ const Contact = () => {
                   <Label htmlFor="message" className="text-brand-navy font-semibold">Project Details</Label>
                   <Textarea id="message" value={formData.message} onChange={e => handleInputChange("message", e.target.value)} placeholder="Tell us about your business challenges and goals..." rows={5} className="border-2 focus:border-brand-orange" required />
                 </div>
+
+                <PromoCodeField 
+                  value={formData.promoCode}
+                  onChange={(value) => handleInputChange("promoCode", value)}
+                />
 
                 <Button 
                   type="submit" 

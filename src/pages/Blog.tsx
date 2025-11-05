@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -139,6 +140,12 @@ const Blog = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Blog | Zira Technologies - Tech Insights & Business Innovation"
+        description="Read the latest insights on technology, business innovation, and digital transformation from Zira Technologies. Expert knowledge for African businesses."
+        keywords="tech blog Kenya, business innovation blog, digital transformation insights, African technology trends, software development blog"
+        canonical="https://ziratechnologies.com/blog"
+      />
       <Header />
       
       {/* Hero Section */}

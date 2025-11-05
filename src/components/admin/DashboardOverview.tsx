@@ -177,7 +177,7 @@ export const DashboardOverview = () => {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-brand-orange" />
-          <p className="text-gray-600">Loading dashboard data...</p>
+          <p className="text-muted-foreground">Loading dashboard data...</p>
         </div>
       </div>
     );
@@ -189,68 +189,68 @@ export const DashboardOverview = () => {
     <div className="space-y-6">
       {/* Welcome Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome back, {welcomeName}! Here's what's happening with your business today.</p>
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground">Welcome back, {welcomeName}! Here's what's happening with your business today.</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Users
             </CardTitle>
-            <Users className="h-4 w-4 text-gray-600" />
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.totalUsers.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-foreground">{stats.totalUsers.toLocaleString()}</div>
             <div className="flex items-center space-x-1 text-xs">
-              <span className="text-gray-500">Registered users</span>
+              <span className="text-muted-foreground">Registered users</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Form Submissions
             </CardTitle>
-            <FileText className="h-4 w-4 text-gray-600" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.formSubmissions.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-foreground">{stats.formSubmissions.toLocaleString()}</div>
             <div className="flex items-center space-x-1 text-xs">
-              <span className="text-gray-500">Total submissions</span>
+              <span className="text-muted-foreground">Total submissions</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Blog Posts
             </CardTitle>
-            <FileText className="h-4 w-4 text-gray-600" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.blogPosts.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-foreground">{stats.blogPosts.toLocaleString()}</div>
             <div className="flex items-center space-x-1 text-xs">
-              <span className="text-gray-500">Published content</span>
+              <span className="text-muted-foreground">Published content</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               System Status
             </CardTitle>
-            <BarChart3 className="h-4 w-4 text-gray-600" />
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">Online</div>
             <div className="flex items-center space-x-1 text-xs">
-              <span className="text-gray-500">All systems operational</span>
+              <span className="text-muted-foreground">All systems operational</span>
             </div>
           </CardContent>
         </Card>
@@ -269,18 +269,18 @@ export const DashboardOverview = () => {
               {recentActivity.length > 0 ? (
                 recentActivity.map((activity) => (
                   <div key={activity.id} className="flex items-start space-x-3">
-                    <div className="p-2 bg-gray-100 rounded-full">
-                      <activity.icon className="h-4 w-4 text-gray-600" />
-                    </div>
+                   <div className="p-2 bg-muted rounded-full">
+                     <activity.icon className="h-4 w-4 text-muted-foreground" />
+                   </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900">{activity.message}</p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
-                    </div>
+                     <p className="text-sm text-foreground">{activity.message}</p>
+                     <p className="text-xs text-muted-foreground">{activity.time}</p>
+                   </div>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-sm text-gray-500">No recent activity to display</p>
+                  <p className="text-sm text-muted-foreground">No recent activity to display</p>
                 </div>
               )}
             </div>
@@ -299,11 +299,11 @@ export const DashboardOverview = () => {
                 <button
                   key={index}
                   onClick={action.action}
-                  className="p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
+                  className="p-4 text-left border border-border rounded-lg hover:bg-muted/50 transition-colors group"
                 >
                   <action.icon className={`h-6 w-6 ${action.color} mb-2 group-hover:scale-110 transition-transform`} />
                   <div className="font-medium text-sm">{action.title}</div>
-                  <div className="text-xs text-gray-500">{action.description}</div>
+                  <div className="text-xs text-muted-foreground">{action.description}</div>
                 </button>
               ))}
             </div>
@@ -319,30 +319,30 @@ export const DashboardOverview = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded-lg">
               <div>
-                <div className="font-medium text-sm">API Status</div>
-                <div className="text-xs text-gray-600">All systems operational</div>
+                <div className="font-medium text-sm text-foreground">API Status</div>
+                <div className="text-xs text-muted-foreground">All systems operational</div>
               </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                 Healthy
               </Badge>
             </div>
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
               <div>
-                <div className="font-medium text-sm">Database</div>
-                <div className="text-xs text-gray-600">Response time: 45ms</div>
+                <div className="font-medium text-sm text-foreground">Database</div>
+                <div className="text-xs text-muted-foreground">Response time: 45ms</div>
               </div>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                 Optimal
               </Badge>
             </div>
-            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
               <div>
-                <div className="font-medium text-sm">Storage</div>
-                <div className="text-xs text-gray-600">78% capacity used</div>
+                <div className="font-medium text-sm text-foreground">Storage</div>
+                <div className="text-xs text-muted-foreground">78% capacity used</div>
               </div>
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                 Warning
               </Badge>
             </div>

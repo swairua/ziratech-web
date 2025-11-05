@@ -18,12 +18,26 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import StartYourJourneyModal from "@/components/StartYourJourneyModal";
+import DemoBookingModal from "@/components/DemoBookingModal";
 import ContactZiraLock from "@/components/ContactZiraLock";
+import SEO from "@/components/SEO";
 import iotDevices from "@/assets/iot-devices.jpg";
 import dashboardAnalytics from "@/assets/dashboard-analytics.jpg";
 
 const ZiraLock = () => {
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Zira Lock - PAYGo Device Management",
+    "description": "Secure PAYGo device management platform for smartphone financing and solar device control. Remote locking technology for loan recovery and asset management.",
+    "applicationCategory": "FinancialSoftware",
+    "operatingSystem": "Web-based",
+    "provider": {
+      "@type": "Organization",
+      "name": "Zira Technologies"
+    }
+  };
+
   const scrollToContact = () => {
     const element = document.getElementById('contact');
     if (element) {
@@ -107,19 +121,27 @@ const ZiraLock = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="PAYGo Smartphone Management Kenya | Zira Lock"
+        description="Secure device financing with Zira Lock. Our PAYGo device locking platform supports smartphones and solar devices, enabling safe financing and loan recovery."
+        keywords="PAYGo smartphone management, device locking software Kenya, smartphone financing platform, PAYGo solar device management, secure smartphone financing, GSM device lock technology"
+        canonical="https://ziratechnologies.com/paygo-device-management"
+        schema={productSchema}
+        ogImage="https://ziratechnologies.com/assets/zira-lock-dashboard.jpg"
+      />
       <Header />
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-brand-navy via-brand-navy/90 to-brand-orange/20 text-white py-20 overflow-hidden">
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6 bg-white/20 text-white border-white/30">
-              PAYGo Device Management
+              PAYGo Smartphone Management Kenya
             </Badge>
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-brand-orange bg-clip-text text-transparent">
-              Zira Lock
+              PAYGo Device Management
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto leading-relaxed">
-              Secure device control system for Pay-As-You-Go financing. Enable remote device management based on payment status to reduce defaults and expand access to technology.
+              Secure smartphone financing platform with device locking software for Kenya. Enable PAYGo solar device management and remote GSM device lock technology to reduce defaults and expand access to technology through safe financing solutions.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
@@ -130,7 +152,7 @@ const ZiraLock = () => {
                 Talk to Us About Zira Lock
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <StartYourJourneyModal platform="Zira Lock">
+              <DemoBookingModal platform="Zira Lock">
                 <Button 
                   size="lg" 
                   variant="outline" 
@@ -139,7 +161,7 @@ const ZiraLock = () => {
                   View Demo
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-              </StartYourJourneyModal>
+              </DemoBookingModal>
             </div>
           </div>
         </div>
@@ -207,12 +229,12 @@ const ZiraLock = () => {
               <Card key={index} className="group hover:shadow-xl transition-all duration-300 overflow-hidden">
                 {index === 0 && (
                   <div className="h-48 overflow-hidden">
-                    <img src={iotDevices} alt="IoT devices and smart technology" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img src={iotDevices} alt="PAYGo device management technology showing smartphone financing and solar device control systems for Kenya" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   </div>
                 )}
                 {index === 1 && (
                   <div className="h-48 overflow-hidden">
-                    <img src={dashboardAnalytics} alt="Analytics dashboard" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img src={dashboardAnalytics} alt="PAYGo analytics dashboard showing device locking software performance and smartphone financing metrics" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   </div>
                 )}
                 {index === 2 && (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Settings, 
   Shield, 
@@ -30,22 +31,212 @@ import {
 export const SettingsManagement = () => {
   const [activeTab, setActiveTab] = useState('general');
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const [formData, setFormData] = useState({
-    companyName: 'Zira Technologies',
-    companyEmail: 'info@ziratechnologies.com',
-    companyPhone: '+1 (555) 123-4567',
-    companyWebsite: 'https://ziratechnologies.com',
-    companyAddress: '123 Innovation Drive, Tech City, TC 12345'
+  // Company Info State
+  const [companyInfo, setCompanyInfo] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    website: '',
+    address: ''
   });
 
-  const handleSaveSettings = async (section: string) => {
-    // Here you would save to Supabase
-    toast({
-      title: "Settings Saved",
-      description: `${section} settings have been updated successfully`,
-    });
+  // System Settings State
+  const [systemSettings, setSystemSettings] = useState({
+    maintenanceMode: false,
+    debugMode: false,
+    publicRegistration: true
+  });
+
+  // Security Settings State
+  const [securitySettings, setSecuritySettings] = useState({
+    twoFactor: true,
+    sessionTimeout: true,
+    sessionDuration: 60,
+    minPasswordLength: 8,
+    requireSpecialChars: true
+  });
+
+  // Appearance Settings State
+  const [appearanceSettings, setAppearanceSettings] = useState({
+    primaryColor: '#FF6B00',
+    secondaryColor: '#1B2B3C',
+    darkModeDefault: false
+  });
+
+  // Notification Settings State
+  const [notificationSettings, setNotificationSettings] = useState({
+    newFormSubmissions: true,
+    newUserRegistrations: true,
+    systemAlerts: true
+  });
+
+  // Admin Recipients State
+  const [adminRecipients, setAdminRecipients] = useState('');
+
+  // Load settings on component mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if user is admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+
+      const { data: adminCheck } = await supabase.rpc('is_admin', { user_uuid: user.id });
+      setIsAdmin(adminCheck || false);
+
+      if (!adminCheck) {
+        setLoading(false);
+        return;
+      }
+
+      // Load all settings from company_settings table (get most recent for each key)
+      const { data: settings, error } = await supabase
+        .from('company_settings')
+        .select('setting_key, setting_value')
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Parse and set settings (handle duplicates by using most recent)
+      const processedKeys = new Set<string>();
+      settings?.forEach(setting => {
+        // Skip if we've already processed this key (keep most recent due to ordering)
+        if (processedKeys.has(setting.setting_key)) {
+          return;
+        }
+        processedKeys.add(setting.setting_key);
+        
+        const value = setting.setting_value;
+        switch (setting.setting_key) {
+          case 'company_info':
+            if (value && typeof value === 'object') {
+              setCompanyInfo(value as typeof companyInfo);
+            }
+            break;
+          case 'system_settings':
+            if (value && typeof value === 'object') {
+              setSystemSettings(value as typeof systemSettings);
+            }
+            break;
+          case 'security_settings':
+            if (value && typeof value === 'object') {
+              setSecuritySettings(value as typeof securitySettings);
+            }
+            break;
+          case 'appearance_settings':
+            if (value && typeof value === 'object') {
+              setAppearanceSettings(value as typeof appearanceSettings);
+            }
+            break;
+          case 'notification_settings':
+            if (value && typeof value === 'object') {
+              setNotificationSettings(value as typeof notificationSettings);
+            }
+            break;
+          case 'admin_recipients':
+            if (value && typeof value === 'object' && 'emails' in value) {
+              setAdminRecipients((value as { emails: string }).emails || '');
+            }
+            break;
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in loadSettings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load settings",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const saveSettings = async (settingKey: string, settingValue: any, sectionName: string) => {
+    if (!isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to modify settings",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setSaving(settingKey);
+      
+      const { error } = await supabase
+        .from('company_settings')
+        .upsert({
+          setting_key: settingKey,
+          setting_value: settingValue
+        }, {
+          onConflict: 'setting_key'
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Settings Saved",
+        description: `${sectionName} settings have been updated successfully`,
+      });
+
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error",
+        description: `Failed to save ${sectionName} settings`,
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-muted-foreground">You don't have permission to access settings.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -77,30 +268,61 @@ export const SettingsManagement = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="company-name">Company Name</Label>
-                    <Input id="company-name" defaultValue="Zira Technologies" />
+                    <Input 
+                      id="company-name" 
+                      value={companyInfo.name} 
+                      onChange={(e) => setCompanyInfo({...companyInfo, name: e.target.value})}
+                      placeholder="Zira Technologies"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="company-email">Contact Email</Label>
-                    <Input id="company-email" defaultValue="info@ziratechnologies.com" />
+                    <Input 
+                      id="company-email" 
+                      type="email"
+                      value={companyInfo.email} 
+                      onChange={(e) => setCompanyInfo({...companyInfo, email: e.target.value})}
+                      placeholder="info@ziratechnologies.com"
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="company-phone">Phone Number</Label>
-                    <Input id="company-phone" defaultValue="+1 (555) 123-4567" />
+                    <Input 
+                      id="company-phone" 
+                      value={companyInfo.phone} 
+                      onChange={(e) => setCompanyInfo({...companyInfo, phone: e.target.value})}
+                      placeholder="+1 (555) 123-4567"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="company-website">Website</Label>
-                    <Input id="company-website" defaultValue="https://ziratechnologies.com" />
+                    <Input 
+                      id="company-website" 
+                      type="url"
+                      value={companyInfo.website} 
+                      onChange={(e) => setCompanyInfo({...companyInfo, website: e.target.value})}
+                      placeholder="https://ziratechnologies.com"
+                    />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="company-address">Address</Label>
-                  <Textarea id="company-address" defaultValue="123 Innovation Drive, Tech City, TC 12345" />
+                  <Textarea 
+                    id="company-address" 
+                    value={companyInfo.address} 
+                    onChange={(e) => setCompanyInfo({...companyInfo, address: e.target.value})}
+                    placeholder="123 Innovation Drive, Tech City, TC 12345"
+                  />
                 </div>
-                <Button onClick={() => handleSaveSettings('Company Information')} className="bg-brand-orange hover:bg-brand-orange-dark">
+                <Button 
+                  onClick={() => saveSettings('company_info', companyInfo, 'Company Information')} 
+                  disabled={saving === 'company_info'}
+                  className="bg-brand-orange hover:bg-brand-orange-dark"
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  Save Changes
+                  {saving === 'company_info' ? 'Saving...' : 'Save Changes'}
                 </Button>
               </CardContent>
             </Card>
@@ -116,25 +338,41 @@ export const SettingsManagement = () => {
                     <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
                     <p className="text-sm text-muted-foreground">Put the site in maintenance mode</p>
                   </div>
-                  <Switch id="maintenance-mode" />
+                  <Switch 
+                    id="maintenance-mode" 
+                    checked={systemSettings.maintenanceMode}
+                    onCheckedChange={(checked) => setSystemSettings({...systemSettings, maintenanceMode: checked})}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="debug-mode">Debug Mode</Label>
                     <p className="text-sm text-muted-foreground">Enable detailed error logging</p>
                   </div>
-                  <Switch id="debug-mode" />
+                  <Switch 
+                    id="debug-mode" 
+                    checked={systemSettings.debugMode}
+                    onCheckedChange={(checked) => setSystemSettings({...systemSettings, debugMode: checked})}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="public-registration">Public Registration</Label>
                     <p className="text-sm text-muted-foreground">Allow public user registration</p>
                   </div>
-                  <Switch id="public-registration" defaultChecked />
+                  <Switch 
+                    id="public-registration" 
+                    checked={systemSettings.publicRegistration}
+                    onCheckedChange={(checked) => setSystemSettings({...systemSettings, publicRegistration: checked})}
+                  />
                 </div>
-                <Button onClick={() => handleSaveSettings('System Settings')} className="bg-brand-orange hover:bg-brand-orange-dark">
+                <Button 
+                  onClick={() => saveSettings('system_settings', systemSettings, 'System Settings')} 
+                  disabled={saving === 'system_settings'}
+                  className="bg-brand-orange hover:bg-brand-orange-dark"
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  Save System Settings
+                  {saving === 'system_settings' ? 'Saving...' : 'Save System Settings'}
                 </Button>
               </CardContent>
             </Card>
@@ -154,35 +392,63 @@ export const SettingsManagement = () => {
                     <Label htmlFor="two-factor">Two-Factor Authentication</Label>
                     <p className="text-sm text-muted-foreground">Require 2FA for admin accounts</p>
                   </div>
-                  <Switch id="two-factor" defaultChecked />
+                  <Switch 
+                    id="two-factor" 
+                    checked={securitySettings.twoFactor}
+                    onCheckedChange={(checked) => setSecuritySettings({...securitySettings, twoFactor: checked})}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="session-timeout">Auto Session Timeout</Label>
                     <p className="text-sm text-muted-foreground">Automatically log out inactive users</p>
                   </div>
-                  <Switch id="session-timeout" defaultChecked />
+                  <Switch 
+                    id="session-timeout" 
+                    checked={securitySettings.sessionTimeout}
+                    onCheckedChange={(checked) => setSecuritySettings({...securitySettings, sessionTimeout: checked})}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="session-duration">Session Duration (minutes)</Label>
-                  <Input id="session-duration" type="number" defaultValue="60" className="w-32" />
+                  <Input 
+                    id="session-duration" 
+                    type="number" 
+                    value={securitySettings.sessionDuration} 
+                    onChange={(e) => setSecuritySettings({...securitySettings, sessionDuration: parseInt(e.target.value) || 60})}
+                    className="w-32" 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="password-policy">Password Policy</Label>
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <div>
                       <Label htmlFor="min-length">Minimum Length</Label>
-                      <Input id="min-length" type="number" defaultValue="8" className="w-24" />
+                      <Input 
+                        id="min-length" 
+                        type="number" 
+                        value={securitySettings.minPasswordLength} 
+                        onChange={(e) => setSecuritySettings({...securitySettings, minPasswordLength: parseInt(e.target.value) || 8})}
+                        className="w-24" 
+                      />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Switch id="require-special" defaultChecked />
+                      <Switch 
+                        id="require-special" 
+                        checked={securitySettings.requireSpecialChars}
+                        onCheckedChange={(checked) => setSecuritySettings({...securitySettings, requireSpecialChars: checked})}
+                      />
                       <Label htmlFor="require-special">Require Special Characters</Label>
                     </div>
                   </div>
                 </div>
-                <Button onClick={() => handleSaveSettings('Security')} className="bg-brand-orange hover:bg-brand-orange-dark">
+                <Button 
+                  onClick={() => saveSettings('security_settings', securitySettings, 'Security')} 
+                  disabled={saving === 'security_settings'}
+                  className="bg-brand-orange hover:bg-brand-orange-dark"
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  Save Security Settings
+                  {saving === 'security_settings' ? 'Saving...' : 'Save Security Settings'}
                 </Button>
               </CardContent>
             </Card>
@@ -235,15 +501,25 @@ export const SettingsManagement = () => {
                 <div>
                   <Label htmlFor="primary-color">Primary Color</Label>
                   <div className="flex items-center space-x-3 mt-2">
-                    <div className="w-8 h-8 rounded border" style={{ backgroundColor: 'hsl(25, 100%, 50%)' }}></div>
-                    <Input id="primary-color" defaultValue="#FF6B00" className="w-32" />
+                    <div className="w-8 h-8 rounded border" style={{ backgroundColor: appearanceSettings.primaryColor }}></div>
+                    <Input 
+                      id="primary-color" 
+                      value={appearanceSettings.primaryColor} 
+                      onChange={(e) => setAppearanceSettings({...appearanceSettings, primaryColor: e.target.value})}
+                      className="w-32" 
+                    />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="secondary-color">Secondary Color</Label>
                   <div className="flex items-center space-x-3 mt-2">
-                    <div className="w-8 h-8 rounded border" style={{ backgroundColor: 'hsl(210, 38%, 17%)' }}></div>
-                    <Input id="secondary-color" defaultValue="#1B2B3C" className="w-32" />
+                    <div className="w-8 h-8 rounded border" style={{ backgroundColor: appearanceSettings.secondaryColor }}></div>
+                    <Input 
+                      id="secondary-color" 
+                      value={appearanceSettings.secondaryColor} 
+                      onChange={(e) => setAppearanceSettings({...appearanceSettings, secondaryColor: e.target.value})}
+                      className="w-32" 
+                    />
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
@@ -251,11 +527,19 @@ export const SettingsManagement = () => {
                     <Label htmlFor="dark-mode">Dark Mode Default</Label>
                     <p className="text-sm text-muted-foreground">Enable dark mode by default</p>
                   </div>
-                  <Switch id="dark-mode" />
+                  <Switch 
+                    id="dark-mode" 
+                    checked={appearanceSettings.darkModeDefault}
+                    onCheckedChange={(checked) => setAppearanceSettings({...appearanceSettings, darkModeDefault: checked})}
+                  />
                 </div>
-                <Button onClick={() => handleSaveSettings('Appearance')} className="bg-brand-orange hover:bg-brand-orange-dark">
+                <Button 
+                  onClick={() => saveSettings('appearance_settings', appearanceSettings, 'Appearance')} 
+                  disabled={saving === 'appearance_settings'}
+                  className="bg-brand-orange hover:bg-brand-orange-dark"
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  Save Theme Settings
+                  {saving === 'appearance_settings' ? 'Saving...' : 'Save Theme Settings'}
                 </Button>
               </CardContent>
             </Card>
@@ -345,22 +629,42 @@ export const SettingsManagement = () => {
                     <Label htmlFor="new-form-submissions">New Form Submissions</Label>
                     <p className="text-sm text-muted-foreground">Get notified when new forms are submitted</p>
                   </div>
-                  <Switch id="new-form-submissions" defaultChecked />
+                  <Switch 
+                    id="new-form-submissions" 
+                    checked={notificationSettings.newFormSubmissions}
+                    onCheckedChange={(checked) => setNotificationSettings({...notificationSettings, newFormSubmissions: checked})}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="new-user-registration">New User Registrations</Label>
                     <p className="text-sm text-muted-foreground">Get notified when new users register</p>
                   </div>
-                  <Switch id="new-user-registration" defaultChecked />
+                  <Switch 
+                    id="new-user-registration" 
+                    checked={notificationSettings.newUserRegistrations}
+                    onCheckedChange={(checked) => setNotificationSettings({...notificationSettings, newUserRegistrations: checked})}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="system-alerts">System Alerts</Label>
                     <p className="text-sm text-muted-foreground">Get notified about system issues</p>
                   </div>
-                  <Switch id="system-alerts" defaultChecked />
+                  <Switch 
+                    id="system-alerts" 
+                    checked={notificationSettings.systemAlerts}
+                    onCheckedChange={(checked) => setNotificationSettings({...notificationSettings, systemAlerts: checked})}
+                  />
                 </div>
+                <Button 
+                  onClick={() => saveSettings('notification_settings', notificationSettings, 'Notifications')} 
+                  disabled={saving === 'notification_settings'}
+                  className="bg-brand-orange hover:bg-brand-orange-dark"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving === 'notification_settings' ? 'Saving...' : 'Save Notification Settings'}
+                </Button>
               </CardContent>
             </Card>
 
@@ -374,14 +678,20 @@ export const SettingsManagement = () => {
                   <Label htmlFor="admin-emails">Admin Email Addresses</Label>
                   <Textarea 
                     id="admin-emails" 
+                    value={adminRecipients}
+                    onChange={(e) => setAdminRecipients(e.target.value)}
                     placeholder="admin@ziratechnologies.com&#10;support@ziratechnologies.com"
                     className="mt-2"
                   />
                   <p className="text-sm text-muted-foreground mt-1">One email address per line</p>
                 </div>
-                <Button onClick={() => handleSaveSettings('Notifications')} className="bg-brand-orange hover:bg-brand-orange-dark">
+                <Button 
+                  onClick={() => saveSettings('admin_recipients', { emails: adminRecipients }, 'Admin Recipients')} 
+                  disabled={saving === 'admin_recipients'}
+                  className="bg-brand-orange hover:bg-brand-orange-dark"
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  Save Notification Settings
+                  {saving === 'admin_recipients' ? 'Saving...' : 'Save Admin Recipients'}
                 </Button>
               </CardContent>
             </Card>

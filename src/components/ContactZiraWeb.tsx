@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Send, Loader2, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PromoCodeField } from "@/components/PromoCodeField";
 
 const ContactZiraWeb = () => {
   const { toast } = useToast();
@@ -21,7 +22,8 @@ const ContactZiraWeb = () => {
     budget_range: "",
     timeline: "",
     features_needed: "",
-    message: ""
+    message: "",
+    promoCode: ""
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +44,8 @@ const ContactZiraWeb = () => {
             website_type: formData.website_type,
             budget_range: formData.budget_range,
             timeline: formData.timeline,
-            features_needed: formData.features_needed
+            features_needed: formData.features_needed,
+            promo_code: formData.promoCode
           }
         });
 
@@ -56,6 +59,10 @@ const ContactZiraWeb = () => {
             phone: formData.phone,
             company: formData.company,
             message: formData.message,
+            website_type: formData.website_type,
+            budget_range: formData.budget_range,
+            timeline: formData.timeline,
+            features_needed: formData.features_needed,
             form_type: 'zira_web'
           }
         });
@@ -77,7 +84,8 @@ const ContactZiraWeb = () => {
         budget_range: "",
         timeline: "",
         features_needed: "",
-        message: ""
+        message: "",
+        promoCode: ""
       });
     } catch (error) {
       console.error("Error submitting Zira Web form:", error);
@@ -112,7 +120,7 @@ const ContactZiraWeb = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
           {/* Contact Form */}
           <Card className="border-0 shadow-2xl bg-white">
             <CardHeader>
@@ -125,8 +133,8 @@ const ContactZiraWeb = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name" className="text-brand-navy font-semibold">Full Name</Label>
                     <Input 
@@ -152,7 +160,7 @@ const ContactZiraWeb = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="phone" className="text-brand-navy font-semibold">Phone Number</Label>
                     <Input 
@@ -177,7 +185,7 @@ const ContactZiraWeb = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="website_type" className="text-brand-navy font-semibold">Type of Website</Label>
                     <Select value={formData.website_type} onValueChange={value => handleInputChange("website_type", value)}>
@@ -216,7 +224,7 @@ const ContactZiraWeb = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="timeline" className="text-brand-navy font-semibold">Project Timeline</Label>
                     <Select value={formData.timeline} onValueChange={value => handleInputChange("timeline", value)}>
@@ -265,7 +273,12 @@ const ContactZiraWeb = () => {
                   />
                 </div>
 
-                <Button 
+                <PromoCodeField 
+                  value={formData.promoCode}
+                  onChange={(value) => handleInputChange("promoCode", value)}
+                />
+
+                <Button
                   type="submit" 
                   disabled={isSubmitting}
                   className="w-full bg-brand-orange hover:bg-brand-orange-dark text-white py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50"

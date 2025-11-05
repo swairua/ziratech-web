@@ -194,7 +194,7 @@ export const UserModal = ({ isOpen, onClose, userId }: UserModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-2xl mx-auto bg-white">
+      <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit User' : 'Add New User'}

@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
+import CareersForm from "@/components/CareersForm";
 
 const Careers = () => {
   const { toast } = useToast();
@@ -111,6 +113,12 @@ const Careers = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Careers at Zira Technologies Kenya | Join Our Team"
+        description="Join Zira Technologies team in Kenya. We're hiring developers, product managers, and business development professionals to build the future of African tech."
+        keywords="careers Kenya tech jobs, software developer jobs Kenya, product manager jobs Nairobi, tech startup careers Kenya, Zira Technologies jobs"
+        canonical="https://ziratechnologies.com/careers"
+      />
       <Header />
       
       <main className="pt-20">
@@ -206,96 +214,8 @@ const Careers = () => {
           </div>
         </section>
 
-        {/* Email Application */}
-        <section className="py-20 bg-gradient-to-br from-brand-navy to-brand-navy-dark">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Join Our Team?</h2>
-              <p className="text-xl text-gray-300 mb-12 leading-relaxed">
-                We'd love to hear from you! Send us your application via email and let's start a conversation about your future at Zira.
-              </p>
-              
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-white/20">
-                <div className="mb-8">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-orange rounded-2xl mb-6">
-                    <Send className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-4">Send Your Application</h3>
-                  <div className="bg-brand-orange/20 rounded-xl p-6 mb-8">
-                    <p className="text-xl font-semibold text-brand-orange mb-2">careers@ziratech.com</p>
-                    <p className="text-white/80 text-sm">We respond within 6 hours during business hours</p>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-8 text-left">
-                  <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                    <h4 className="text-lg font-semibold text-white mb-4">📧 What to Include in Your Email</h4>
-                    <ul className="space-y-3 text-white/80">
-                      <li className="flex items-start">
-                        <span className="text-brand-orange mr-2">•</span>
-                        <span>Your full name and contact information</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-brand-orange mr-2">•</span>
-                        <span>Position you're interested in</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-brand-orange mr-2">•</span>
-                        <span>Years of relevant experience</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-brand-orange mr-2">•</span>
-                        <span>Portfolio/LinkedIn/GitHub links</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                    <h4 className="text-lg font-semibold text-white mb-4">📎 Required Attachments</h4>
-                    <ul className="space-y-3 text-white/80">
-                      <li className="flex items-start">
-                        <span className="text-brand-orange mr-2">•</span>
-                        <span>Updated CV/Resume (PDF format)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-brand-orange mr-2">•</span>
-                        <span>Cover letter explaining your interest</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-brand-orange mr-2">•</span>
-                        <span>Any relevant work samples (optional)</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="mt-8 p-6 bg-white/5 rounded-xl border border-white/10">
-                  <h4 className="text-lg font-semibold text-white mb-3">💡 Email Subject Line</h4>
-                  <p className="text-white/80 text-sm mb-2">Use this format for faster processing:</p>
-                  <div className="bg-brand-navy/50 rounded-lg p-3 font-mono text-brand-orange text-sm">
-                    "Application: [Position Name] - [Your Full Name]"
-                  </div>
-                  <p className="text-white/60 text-xs mt-2">
-                    Example: "Application: Full Stack Developer - John Doe"
-                  </p>
-                </div>
-
-                <div className="mt-8">
-                  <Button 
-                    className="bg-brand-orange hover:bg-brand-orange-dark text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-                    onClick={() => window.location.href = 'mailto:careers@ziratech.com?subject=Application: [Position Name] - [Your Full Name]'}
-                  >
-                    Open Email Client
-                    <Send className="ml-2 h-5 w-5" />
-                  </Button>
-                  <p className="text-white/60 text-sm mt-4">
-                    We review all applications carefully and will get back to you within one week.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Application Form */}
+        <CareersForm />
       </main>
 
       <Footer />

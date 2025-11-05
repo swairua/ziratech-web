@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { SenderManagement } from './SenderManagement';
 import { 
   Mail, 
   Server, 
@@ -27,14 +29,14 @@ import {
 export const EmailSettings = () => {
   const [settings, setSettings] = useState({
     smtp: {
-      host: 'smtp.resend.com',
+      host: '',
       port: 587,
-      username: 'resend',
+      username: '',
       password: '',
       encryption: 'tls',
-      from_name: 'Zira Technologies',
-      from_email: 'info@ziratechnologies.com',
-      reply_to: 'support@ziratechnologies.com'
+      from_name: '',
+      from_email: '',
+      reply_to: ''
     },
     delivery: {
       rate_limit: 100,
@@ -52,13 +54,228 @@ export const EmailSettings = () => {
     }
   });
 
+  const [testEmail, setTestEmail] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedSender, setSelectedSender] = useState('');
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [senders, setSenders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [testEmailLoading, setTestEmailLoading] = useState(false);
+
   const { toast } = useToast();
 
-  const handleSaveSettings = (section: string) => {
-    toast({
-      title: "Settings Saved",
-      description: `${section} settings have been updated successfully`,
-    });
+  useEffect(() => {
+    loadSettings();
+    loadTemplates();
+    loadSenders();
+  }, []);
+
+  const loadSenders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('email_senders')
+        .select('id, from_name, from_email, reply_to, is_default, is_active')
+        .eq('is_active', true)
+        .order('is_default', { ascending: false });
+
+      if (error) throw error;
+      setSenders(data || []);
+      
+      // Auto-select default sender
+      const defaultSender = data?.find(s => s.is_default);
+      if (defaultSender && !selectedSender) {
+        setSelectedSender(defaultSender.id);
+      }
+    } catch (error) {
+      console.error('Error loading senders:', error);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('email_templates')
+        .select('id, name, subject')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setTemplates(data || []);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+    }
+  };
+
+  const loadSettings = async () => {
+    try {
+      // Load email settings
+      const { data: emailSettings, error: settingsError } = await supabase
+        .from('email_settings')
+        .select('*');
+
+      if (settingsError) throw settingsError;
+
+      // Load default sender information
+      const { data: defaultSender, error: senderError } = await supabase
+        .from('email_senders')
+        .select('from_name, from_email, reply_to')
+        .eq('is_default', true)
+        .eq('is_active', true)
+        .single();
+
+      if (senderError && senderError.code !== 'PGRST116') {
+        console.error('Error loading default sender:', senderError);
+      }
+
+      if (emailSettings && emailSettings.length > 0) {
+        const settingsMap: Record<string, any> = {};
+        emailSettings.forEach(setting => {
+          settingsMap[setting.setting_key] = setting.setting_value;
+        });
+
+        setSettings(prev => ({
+          ...prev,
+          smtp: {
+            ...prev.smtp,
+            ...settingsMap.smtp,
+            // Override with default sender if available
+            ...(defaultSender && {
+              from_name: defaultSender.from_name,
+              from_email: defaultSender.from_email,
+              reply_to: defaultSender.reply_to
+            })
+          },
+          delivery: {
+            ...prev.delivery,
+            ...settingsMap.delivery
+          },
+          security: {
+            ...prev.security,
+            ...settingsMap.security
+          }
+        }));
+      } else if (defaultSender) {
+        // If no email settings but default sender exists, use sender info
+        setSettings(prev => ({
+          ...prev,
+          smtp: {
+            ...prev.smtp,
+            from_name: defaultSender.from_name,
+            from_email: defaultSender.from_email,
+            reply_to: defaultSender.reply_to
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load email settings",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const saveSetting = async (key: string, value: any) => {
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase
+        .from('email_settings')
+        .upsert({
+          setting_key: key,
+          setting_value: value
+        }, {
+          onConflict: 'setting_key'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Settings Saved",
+        description: `${key} settings have been updated successfully`,
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateSetting = (section: string, field: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section as keyof typeof prev],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSaveSettings = async (section: string) => {
+    const sectionKey = section.toLowerCase().replace(' ', '_');
+    let sectionData = {};
+    
+    switch (section) {
+      case 'SMTP':
+        sectionData = settings.smtp;
+        break;
+      case 'Sender Information':
+        // For sender information, update both email_settings and email_senders
+        sectionData = {
+          from_name: settings.smtp.from_name,
+          from_email: settings.smtp.from_email,
+          reply_to: settings.smtp.reply_to
+        };
+        
+        // Also update or create default sender
+        try {
+          const { data: existingDefault } = await supabase
+            .from('email_senders')
+            .select('id')
+            .eq('is_default', true)
+            .single();
+
+          if (existingDefault) {
+            // Update existing default sender
+            await supabase
+              .from('email_senders')
+              .update({
+                from_name: settings.smtp.from_name,
+                from_email: settings.smtp.from_email,
+                reply_to: settings.smtp.reply_to
+              })
+              .eq('is_default', true);
+          } else {
+            // Create new default sender
+            await supabase
+              .from('email_senders')
+              .insert({
+                from_name: settings.smtp.from_name,
+                from_email: settings.smtp.from_email,
+                reply_to: settings.smtp.reply_to,
+                is_default: true,
+                is_active: true
+              });
+          }
+        } catch (error) {
+          console.error('Error updating default sender:', error);
+        }
+        break;
+      case 'Delivery':
+        sectionData = settings.delivery;
+        break;
+      case 'Security':
+        sectionData = settings.security;
+        break;
+    }
+    
+    await saveSetting(sectionKey, sectionData);
   };
 
   const handleTestConnection = () => {
@@ -76,11 +293,66 @@ export const EmailSettings = () => {
     }, 2000);
   };
 
-  const handleSendTestEmail = () => {
-    toast({
-      title: "Test Email Sent",
-      description: "A test email has been sent to your email address",
-    });
+  const handleSendTestEmail = async () => {
+    if (!testEmail) {
+      toast({
+        title: "Error",
+        description: "Please enter a test email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(testEmail)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setTestEmailLoading(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('send-test-email', {
+        body: {
+          testEmail,
+          templateId: selectedTemplate && selectedTemplate !== 'default' ? selectedTemplate : null,
+          senderId: selectedSender || null
+        }
+      });
+
+      if (error) {
+        console.error('Test email error:', error);
+        throw new Error(error.message || 'Failed to send test email');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Test Email Sent",
+        description: `A test email has been sent to ${testEmail}`,
+      });
+
+      // Clear the test email field
+      setTestEmail('');
+      setSelectedTemplate('');
+      
+    } catch (error: any) {
+      console.error('Error sending test email:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send test email. Please check your email settings and try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setTestEmailLoading(false);
+    }
   };
 
   return (
@@ -90,6 +362,9 @@ export const EmailSettings = () => {
         <h2 className="text-2xl font-bold text-brand-navy">Email Settings</h2>
         <p className="text-muted-foreground">Configure email delivery and SMTP settings</p>
       </div>
+
+      {/* Sender Management */}
+      <SenderManagement />
 
       <div className="grid gap-6">
         {/* SMTP Configuration */}
@@ -108,6 +383,7 @@ export const EmailSettings = () => {
                 <Input 
                   id="smtp-host" 
                   value={settings.smtp.host}
+                  onChange={(e) => updateSetting('smtp', 'host', e.target.value)}
                   placeholder="smtp.resend.com"
                 />
               </div>
@@ -117,6 +393,7 @@ export const EmailSettings = () => {
                   id="smtp-port" 
                   type="number"
                   value={settings.smtp.port}
+                  onChange={(e) => updateSetting('smtp', 'port', parseInt(e.target.value) || 587)}
                   placeholder="587"
                 />
               </div>
@@ -128,6 +405,7 @@ export const EmailSettings = () => {
                 <Input 
                   id="smtp-username" 
                   value={settings.smtp.username}
+                  onChange={(e) => updateSetting('smtp', 'username', e.target.value)}
                   placeholder="resend"
                 />
               </div>
@@ -136,6 +414,8 @@ export const EmailSettings = () => {
                 <Input 
                   id="smtp-password" 
                   type="password"
+                  value={settings.smtp.password}
+                  onChange={(e) => updateSetting('smtp', 'password', e.target.value)}
                   placeholder="Enter your API key"
                 />
               </div>
@@ -143,7 +423,10 @@ export const EmailSettings = () => {
 
             <div>
               <Label htmlFor="smtp-encryption">Encryption</Label>
-              <Select value={settings.smtp.encryption}>
+              <Select 
+                value={settings.smtp.encryption}
+                onValueChange={(value) => updateSetting('smtp', 'encryption', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -166,9 +449,10 @@ export const EmailSettings = () => {
               </Button>
               <Button 
                 onClick={() => handleSaveSettings('SMTP')}
+                disabled={loading}
                 className="bg-brand-orange hover:bg-brand-orange-dark"
               >
-                Save SMTP Settings
+                {loading ? 'Saving...' : 'Save SMTP Settings'}
               </Button>
             </div>
           </CardContent>
@@ -190,6 +474,7 @@ export const EmailSettings = () => {
                 <Input 
                   id="from-name" 
                   value={settings.smtp.from_name}
+                  onChange={(e) => updateSetting('smtp', 'from_name', e.target.value)}
                   placeholder="Your Company Name"
                 />
               </div>
@@ -199,6 +484,7 @@ export const EmailSettings = () => {
                   id="from-email" 
                   type="email"
                   value={settings.smtp.from_email}
+                  onChange={(e) => updateSetting('smtp', 'from_email', e.target.value)}
                   placeholder="noreply@yourcompany.com"
                 />
               </div>
@@ -210,15 +496,17 @@ export const EmailSettings = () => {
                 id="reply-to" 
                 type="email"
                 value={settings.smtp.reply_to}
+                onChange={(e) => updateSetting('smtp', 'reply_to', e.target.value)}
                 placeholder="support@yourcompany.com"
               />
             </div>
 
             <Button 
               onClick={() => handleSaveSettings('Sender Information')}
+              disabled={loading}
               className="bg-brand-orange hover:bg-brand-orange-dark"
             >
-              Save Sender Settings
+              {loading ? 'Saving...' : 'Save Sender Settings'}
             </Button>
           </CardContent>
         </Card>
@@ -240,6 +528,7 @@ export const EmailSettings = () => {
                   id="rate-limit" 
                   type="number"
                   value={settings.delivery.rate_limit}
+                  onChange={(e) => updateSetting('delivery', 'rate_limit', parseInt(e.target.value) || 100)}
                   placeholder="100"
                 />
               </div>
@@ -249,6 +538,7 @@ export const EmailSettings = () => {
                   id="retry-attempts" 
                   type="number"
                   value={settings.delivery.retry_attempts}
+                  onChange={(e) => updateSetting('delivery', 'retry_attempts', parseInt(e.target.value) || 3)}
                   placeholder="3"
                 />
               </div>
@@ -258,6 +548,7 @@ export const EmailSettings = () => {
                   id="retry-delay" 
                   type="number"
                   value={settings.delivery.retry_delay}
+                  onChange={(e) => updateSetting('delivery', 'retry_delay', parseInt(e.target.value) || 300)}
                   placeholder="300"
                 />
               </div>
@@ -272,6 +563,7 @@ export const EmailSettings = () => {
                 <Switch 
                   id="bounce-handling" 
                   checked={settings.delivery.bounce_handling}
+                  onCheckedChange={(checked) => updateSetting('delivery', 'bounce_handling', checked)}
                 />
               </div>
               
@@ -283,6 +575,7 @@ export const EmailSettings = () => {
                 <Switch 
                   id="track-opens" 
                   checked={settings.delivery.track_opens}
+                  onCheckedChange={(checked) => updateSetting('delivery', 'track_opens', checked)}
                 />
               </div>
               
@@ -294,15 +587,17 @@ export const EmailSettings = () => {
                 <Switch 
                   id="track-clicks" 
                   checked={settings.delivery.track_clicks}
+                  onCheckedChange={(checked) => updateSetting('delivery', 'track_clicks', checked)}
                 />
               </div>
             </div>
 
             <Button 
               onClick={() => handleSaveSettings('Delivery')}
+              disabled={loading}
               className="bg-brand-orange hover:bg-brand-orange-dark"
             >
-              Save Delivery Settings
+              {loading ? 'Saving...' : 'Save Delivery Settings'}
             </Button>
           </CardContent>
         </Card>
@@ -378,30 +673,53 @@ export const EmailSettings = () => {
               <Input 
                 id="test-email" 
                 type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
                 placeholder="test@example.com"
               />
             </div>
             
             <div>
-              <Label htmlFor="test-template">Test Template</Label>
-              <Select>
+              <Label htmlFor="sender-select">From Sender</Label>
+              <Select value={selectedSender} onValueChange={setSelectedSender}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a template" />
+                  <SelectValue placeholder="Select sender" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="confirmation">Form Confirmation</SelectItem>
-                  <SelectItem value="welcome">Welcome Email</SelectItem>
-                  <SelectItem value="alert">Admin Alert</SelectItem>
+                  {senders.map((sender) => (
+                    <SelectItem key={sender.id} value={sender.id}>
+                      {sender.from_name} &lt;{sender.from_email}&gt;
+                      {sender.is_default && ' (Default)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="test-template">Test Template (Optional)</Label>
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a template or leave blank for default" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default Test Email</SelectItem>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name} - {template.subject}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <Button 
               onClick={handleSendTestEmail}
+              disabled={testEmailLoading || !testEmail || !selectedSender}
               className="bg-brand-orange hover:bg-brand-orange-dark"
             >
               <Send className="h-4 w-4 mr-2" />
-              Send Test Email
+              {testEmailLoading ? 'Sending...' : 'Send Test Email'}
             </Button>
           </CardContent>
         </Card>

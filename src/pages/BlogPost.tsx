@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Calendar, User, Clock, Eye, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import DOMPurify from 'dompurify';
 
 interface BlogPost {
   id: string;
@@ -188,8 +190,39 @@ const BlogPost = () => {
     );
   }
 
+  const articleSchema = post ? {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": post.excerpt,
+    "image": post.featured_image_url,
+    "author": {
+      "@type": "Person",
+      "name": post.author?.full_name || "Anonymous"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Zira Technologies"
+    },
+    "datePublished": post.published_at,
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://ziratechnologies.com/blog/${post.slug}`
+    }
+  } : null;
+
   return (
     <div className="min-h-screen bg-background">
+      {post && (
+        <SEO 
+          title={post.meta_title || `${post.title} | Zira Technologies Blog`}
+          description={post.meta_description || post.excerpt}
+          keywords={post.tags?.join(', ') || ''}
+          canonical={`https://ziratechnologies.com/blog/${post.slug}`}
+          ogImage={post.featured_image_url}
+          schema={articleSchema}
+        />
+      )}
       <Header />
       
       <article className="pt-20">
@@ -268,8 +301,10 @@ const BlogPost = () => {
                 <div className="aspect-video overflow-hidden rounded-lg shadow-xl">
                   <img
                     src={post.featured_image_url}
-                    alt={post.title}
+                    alt={`${post.title} - Featured image for blog post`}
                     className="w-full h-full object-cover"
+                    loading="eager"
+                    decoding="async"
                   />
                 </div>
               </div>
@@ -283,7 +318,12 @@ const BlogPost = () => {
             <div className="max-w-4xl mx-auto">
               <div 
                 className="prose prose-lg max-w-none prose-headings:text-brand-navy prose-a:text-brand-orange prose-a:no-underline hover:prose-a:underline prose-strong:text-brand-navy prose-img:rounded-lg"
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content, {
+                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'code'],
+                  ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel'],
+                  ADD_ATTR: ['target', 'rel'],
+                  ALLOW_DATA_ATTR: false
+                }) }}
               />
               
               {/* Tags */}
@@ -322,8 +362,10 @@ const BlogPost = () => {
                         <div className="aspect-video overflow-hidden rounded-t-lg">
                           <img
                             src={relatedPost.featured_image_url}
-                            alt={relatedPost.title}
+                            alt={`${relatedPost.title} - Related blog post`}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       )}

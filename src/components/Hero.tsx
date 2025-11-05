@@ -16,8 +16,10 @@ const Hero = () => {
       <div className="absolute inset-0 z-0">
         <img 
           src={africanHeroBanner} 
-          alt="African Technology Landscape" 
+          alt="African Technology Landscape showcasing digital transformation and smart business solutions across Kenya and Africa" 
           className="w-full h-full object-cover opacity-40"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/40 via-black/30 to-brand-orange/25"></div>
       </div>

@@ -43,7 +43,7 @@ export const AdminHeader = ({ onMenuToggle }: AdminHeaderProps) => {
         title: "Signed Out",
         description: "You have been successfully signed out.",
       });
-      navigate('/admin');
+      navigate('/auth');
     } catch (error) {
       toast({
         variant: "destructive",
@@ -64,7 +64,7 @@ export const AdminHeader = ({ onMenuToggle }: AdminHeaderProps) => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6">
+    <header className="bg-card border-b border-border h-16 flex items-center justify-between px-6">
       {/* Left Section */}
       <div className="flex items-center space-x-4">
         <Button
@@ -78,7 +78,7 @@ export const AdminHeader = ({ onMenuToggle }: AdminHeaderProps) => {
         
         {/* Search Bar */}
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search..."
             value={searchQuery}

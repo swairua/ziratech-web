@@ -1,14 +1,28 @@
 import { Mail, Phone, MapPin, Shield } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const navigate = useNavigate();
 
   const scrollToSection = (sectionId: string) => {
+    // First check if the section exists on the current page
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
+      return;
     }
+    
+    // If section doesn't exist, navigate to home page with hash
+    navigate(`/#${sectionId}`);
+    
+    // After navigation, try to scroll to the section
+    setTimeout(() => {
+      const targetElement = document.getElementById(sectionId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   return (
@@ -48,6 +62,7 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-white">Resources</h3>
             <ul className="space-y-3">
               <li><Link to="/blog" className="text-gray-300 hover:text-brand-orange transition-colors">Blog & Insights</Link></li>
+              <li><Link to="/portfolio" className="text-gray-300 hover:text-brand-orange transition-colors">Our Portfolio</Link></li>
               <li><button onClick={() => scrollToSection('platforms')} className="text-gray-300 hover:text-brand-orange transition-colors">Platform Demos</button></li>
               <li><button onClick={() => scrollToSection('impact')} className="text-gray-300 hover:text-brand-orange transition-colors">Success Stories</button></li>
               <li><button onClick={() => scrollToSection('contact')} className="text-gray-300 hover:text-brand-orange transition-colors">Get Support</button></li>

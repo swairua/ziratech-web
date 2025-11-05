@@ -42,12 +42,10 @@ interface FormSubmission {
   created_at: string;
   handled_by?: string;
   handled_at?: string;
-  data?: any; // Additional form data stored as JSON
-  platform?: string;
 }
 
 interface FormSubmissionsListProps {
-  formType: 'all' | 'contact' | 'career' | 'business' | 'platforms' | 'demo_booking' | 'start_journey' | 'zira_web' | 'zira_lock' | 'zira_sms' | 'partnership' | 'support';
+  formType: 'all' | 'contact' | 'career' | 'custom';
   onUpdate?: () => void;
 }
 
@@ -73,13 +71,7 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
 
       // Apply form type filter
       if (formType !== 'all') {
-        if (formType === 'business') {
-          query = query.in('form_type', ['demo_booking', 'start_journey', 'partnership', 'support']);
-        } else if (formType === 'platforms') {
-          query = query.in('form_type', ['zira_web', 'zira_lock', 'zira_sms']);
-        } else {
-          query = query.eq('form_type', formType);
-        }
+        query = query.eq('form_type', formType);
       }
 
       // Apply search filter
@@ -160,30 +152,12 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
     const colors = {
       contact: 'bg-blue-100 text-blue-800',
       career: 'bg-green-100 text-green-800',
-      demo_booking: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-      start_journey: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-      zira_web: 'bg-green-500/10 text-green-600 border-green-500/20',
-      zira_lock: 'bg-red-500/10 text-red-600 border-red-500/20',
-      zira_sms: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-      partnership: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
-      support: 'bg-orange-500/10 text-orange-600 border-orange-500/20'
-    } as const;
-
-    const labels = {
-      contact: 'Contact',
-      career: 'Career',
-      demo_booking: 'Demo Booking',
-      start_journey: 'Business Consultation',
-      zira_web: 'Zira Web',
-      zira_lock: 'Zira Lock',
-      zira_sms: 'Zira SMS',
-      partnership: 'Partnership',
-      support: 'Support'
+      custom: 'bg-purple-100 text-purple-800'
     } as const;
 
     return (
-      <Badge className={colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800'} variant="outline">
-        {labels[type as keyof typeof labels] || type}
+      <Badge className={colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800'}>
+        {type}
       </Badge>
     );
   };
@@ -294,27 +268,16 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
                   <TableRow key={submission.id}>
                      <TableCell>
                        <div>
-                         <div className="font-medium">{submission.name || submission.data?.name}</div>
-                         <div className="text-sm text-gray-500">{submission.email || submission.data?.email}</div>
-                         {(submission.phone || submission.data?.phone) && (
-                           <div className="text-sm text-gray-500">{submission.phone || submission.data?.phone}</div>
+                         <div className="font-medium">{submission.name}</div>
+                         <div className="text-sm text-gray-500">{submission.email}</div>
+                         {submission.phone && (
+                           <div className="text-sm text-gray-500">{submission.phone}</div>
                          )}
-                         {(submission.company || submission.data?.company) && (
-                           <div className="text-sm text-gray-500">{submission.company || submission.data?.company}</div>
+                         {submission.company && (
+                           <div className="text-sm text-gray-500">{submission.company}</div>
                          )}
-                         {(submission.position || submission.data?.role) && (
-                           <div className="text-sm text-blue-600">
-                             {submission.form_type === 'career' ? 'Position' : 'Role'}: {submission.position || submission.data?.role}
-                           </div>
-                         )}
-                         {submission.platform && (
-                           <div className="text-sm text-purple-600">Platform: {submission.platform}</div>
-                         )}
-                         {submission.data?.businessType && (
-                           <div className="text-sm text-green-600">Business: {submission.data.businessType}</div>
-                         )}
-                         {submission.data?.businessSize && (
-                           <div className="text-sm text-orange-600">Size: {submission.data.businessSize}</div>
+                         {submission.position && (
+                           <div className="text-sm text-blue-600">Position: {submission.position}</div>
                          )}
                        </div>
                     </TableCell>
@@ -325,33 +288,8 @@ export const FormSubmissionsList = ({ formType, onUpdate }: FormSubmissionsListP
                       {getStatusBadge(submission.status)}
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-48 text-sm space-y-1">
-                        {submission.message && (
-                          <div className="truncate">{submission.message}</div>
-                        )}
-                        {submission.data?.currentChallenges && (
-                          <div className="truncate text-red-600">
-                            <span className="font-medium">Challenges:</span> {submission.data.currentChallenges}
-                          </div>
-                        )}
-                        {submission.data?.requirements && (
-                          <div className="truncate text-blue-600">
-                            <span className="font-medium">Requirements:</span> {submission.data.requirements}
-                          </div>
-                        )}
-                        {submission.data?.timePreference && (
-                          <div className="truncate text-green-600">
-                            <span className="font-medium">Preferred Time:</span> {submission.data.timePreference}
-                          </div>
-                        )}
-                        {submission.data?.specificRequirements && (
-                          <div className="truncate text-purple-600">
-                            <span className="font-medium">Needs:</span> {submission.data.specificRequirements}
-                          </div>
-                        )}
-                        {(!submission.message && !submission.data?.currentChallenges && !submission.data?.requirements && !submission.data?.timePreference && !submission.data?.specificRequirements) && (
-                          <div className="text-gray-400">No message</div>
-                        )}
+                      <div className="max-w-48 truncate text-sm">
+                        {submission.message || 'No message'}
                       </div>
                     </TableCell>
                     <TableCell>

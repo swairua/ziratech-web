@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Send, Loader2, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PromoCodeField } from "@/components/PromoCodeField";
 
 const ContactZiraLock = () => {
   const { toast } = useToast();
@@ -20,7 +21,8 @@ const ContactZiraLock = () => {
     device_type: "",
     volume: "",
     use_case: "",
-    message: ""
+    message: "",
+    promoCode: ""
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +42,8 @@ const ContactZiraLock = () => {
             company: formData.company,
             device_type: formData.device_type,
             volume: formData.volume,
-            use_case: formData.use_case
+            use_case: formData.use_case,
+            promo_code: formData.promoCode
           }
         });
 
@@ -54,6 +57,9 @@ const ContactZiraLock = () => {
             phone: formData.phone,
             company: formData.company,
             message: formData.message,
+            device_type: formData.device_type,
+            volume: formData.volume,
+            use_case: formData.use_case,
             form_type: 'zira_lock'
           }
         });
@@ -74,7 +80,8 @@ const ContactZiraLock = () => {
         device_type: "",
         volume: "",
         use_case: "",
-        message: ""
+        message: "",
+        promoCode: ""
       });
     } catch (error) {
       console.error("Error submitting Zira Lock form:", error);
@@ -109,7 +116,7 @@ const ContactZiraLock = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
           {/* Contact Form */}
           <Card className="border-0 shadow-2xl bg-white">
             <CardHeader>
@@ -122,8 +129,8 @@ const ContactZiraLock = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name" className="text-brand-navy font-semibold">Full Name</Label>
                     <Input 
@@ -149,7 +156,7 @@ const ContactZiraLock = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="phone" className="text-brand-navy font-semibold">Phone Number</Label>
                     <Input 
@@ -175,7 +182,7 @@ const ContactZiraLock = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="device_type" className="text-brand-navy font-semibold">Device Type</Label>
                     <Select value={formData.device_type} onValueChange={value => handleInputChange("device_type", value)}>
@@ -243,7 +250,12 @@ const ContactZiraLock = () => {
                   />
                 </div>
 
-                <Button 
+                <PromoCodeField 
+                  value={formData.promoCode}
+                  onChange={(value) => handleInputChange("promoCode", value)}
+                />
+
+                <Button
                   type="submit" 
                   disabled={isSubmitting}
                   className="w-full bg-brand-orange hover:bg-brand-orange-dark text-white py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50"

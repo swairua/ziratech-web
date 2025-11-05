@@ -98,8 +98,10 @@ const Services = () => {
                   <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
                     <img 
                       src={service.image} 
-                      alt={service.title}
+                      alt={`${service.title} - ${service.subtitle} platform showcase`}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   <div>

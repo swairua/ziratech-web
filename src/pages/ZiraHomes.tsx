@@ -6,8 +6,6 @@ import {
   Users, 
   DollarSign, 
   FileText, 
-  Calendar, 
-  Shield,
   CheckCircle,
   ArrowRight,
   BarChart3,
@@ -15,23 +13,57 @@ import {
   Smartphone,
   Building,
   TrendingUp,
-  Monitor,
-  Phone,
-  Mail,
   Video
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import DemoBookingModal from "@/components/DemoBookingModal";
-import homesHero from "@/assets/zira-homes-dashboard.jpg";
+import ContactZiraHomes from "@/components/ContactZiraHomes";
+import SEO from "@/components/SEO";
+import { OfferPopup } from "@/components/OfferPopup";
 import africanPersonMobile from "@/assets/african-person-mobile-estate.jpg";
 
+const ZIRA_HOMES_WEBAPP_URL = "https://www.zira-homes.com/";
+
 const ZiraHomes = () => {
-  const scrollToContact = () => {
-    const element = document.getElementById('contact');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Zira Homes - Rental Management Software",
+    "description": "Complete rental management software for landlords in Kenya. Automate rent collection via M-Pesa, track tenants, manage leases, and send SMS reminders.",
+    "applicationCategory": "PropertyManagementSoftware",
+    "operatingSystem": "Web-based",
+    "offers": {
+      "@type": "Offer",
+      "price": "Contact for pricing",
+      "priceCurrency": "KES"
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "Zira Technologies"
     }
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How does M-Pesa rent collection work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zira Homes integrates with M-Pesa to automatically collect rent payments. Tenants receive payment reminders via SMS and can pay directly through M-Pesa. All payments are tracked automatically in the system."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I manage multiple properties?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, Zira Homes supports unlimited properties and units. You can manage multiple buildings, track different lease terms, and generate separate reports for each property."
+        }
+      }
+    ]
   };
 
   const features = [
@@ -90,6 +122,14 @@ const ZiraHomes = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Rental Management Software Kenya | Zira Homes"
+        description="Simplify property management with Zira Homes. Automate rent collection via M-Pesa, track tenants and leases, send SMS reminders, and manage documents easily."
+        keywords="rental management software Kenya, property management system Kenya, online rent collection platform, landlord tenant management system, M-Pesa rent collection, tenant tracking Kenya"
+        canonical="https://ziratechnologies.com/rental-management-kenya"
+        schema={[productSchema, faqSchema]}
+        ogImage="https://ziratechnologies.com/assets/zira-homes-dashboard.jpg"
+      />
       <Header />
       
       {/* Hero Section */}
@@ -98,45 +138,48 @@ const ZiraHomes = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-left">
               <Badge variant="secondary" className="mb-6 bg-white/20 text-white border-white/30">
-                Property Management Platform
+                Rental Management Software Kenya
               </Badge>
               <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-brand-orange bg-clip-text text-transparent">
-                Zira Homes
+                Rental Management Software Kenya
               </h1>
               <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-white">
-                Smarter Property Management. Built for Africa.
+                Property Management System for Kenyan Landlords
               </h2>
               <p className="text-xl mb-8 text-white/90 leading-relaxed">
-                From Kenya to the diaspora worldwide, Zira Homes revolutionizes property management for busy landlords 
-                and investors. Whether you're managing rentals from London, Toronto, or right here in Nairobi, 
-                our platform streamlines everything — tenant communication, rent collection, expense tracking, 
-                and detailed reporting — all from one intuitive dashboard designed for today's global property owners.
+                Transform your property management business with our comprehensive rental management software designed for Kenya. 
+                Automate rent collection via M-Pesa, track tenants efficiently, manage leases digitally, send SMS reminders, 
+                and access detailed reporting from anywhere. Perfect for diaspora landlords and local property managers who need 
+                smart rental platform solutions that work with Kenyan banking and mobile money systems.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button 
                   size="lg" 
                   className="bg-brand-orange hover:bg-brand-orange-dark text-white px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
-                  onClick={scrollToContact}
+                  asChild
                 >
-                  Start Managing Smarter Today
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <a href={ZIRA_HOMES_WEBAPP_URL} target="_blank" rel="noopener noreferrer">
+                    Start Managing Smarter Today
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </a>
                 </Button>
-                <DemoBookingModal platform="Zira Homes">
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="border-2 border-white bg-white/10 text-white hover:bg-white hover:text-brand-navy px-8 py-4 text-lg font-semibold backdrop-blur-sm transition-all"
-                  >
-                    See Live Demo
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-2 border-white bg-white/10 text-white hover:bg-white hover:text-brand-navy px-8 py-4 text-lg font-semibold backdrop-blur-sm transition-all"
+                  asChild
+                >
+                  <a href="#contact">
+                    Request for a Demo
                     <Video className="ml-2 h-5 w-5" />
-                  </Button>
-                </DemoBookingModal>
+                  </a>
+                </Button>
               </div>
             </div>
             <div className="relative">
               <img 
                 src="/lovable-uploads/6849846c-44dd-48b1-b784-df9410c87150.png" 
-                alt="Zira Homes Dashboard" 
+                alt="Rental management software Kenya dashboard showing property management system features including tenant tracking, M-Pesa rent collection, and lease management tools" 
                 className="rounded-lg shadow-2xl"
               />
             </div>
@@ -150,11 +193,11 @@ const ZiraHomes = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Why Choose Zira Homes?
+              Advanced Property Management System Features
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Perfect for busy diaspora landlords and local property managers who need comprehensive insights, 
-              automated operations, and seamless remote management capabilities.
+              Complete landlord tenant management system with automated rental payments, digital property management tools, 
+              and smart rental platform features designed specifically for Kenya's property management market.
             </p>
           </div>
 
@@ -173,13 +216,14 @@ const ZiraHomes = () => {
                   <p className="text-muted-foreground">{feature.description}</p>
                 </CardContent>
                 <div className="px-6 pb-6">
-                  <DemoBookingModal platform="Zira Homes">
-                    <Button 
-                      className="w-full bg-brand-orange hover:bg-brand-orange-dark text-white font-semibold py-2"
-                    >
-                      Request Personalized Demo
-                    </Button>
-                  </DemoBookingModal>
+                  <Button 
+                    className="w-full bg-brand-orange hover:bg-brand-orange-dark text-white font-semibold py-2"
+                    asChild
+                  >
+                    <a href="#contact">
+                      Request for a Demo
+                    </a>
+                  </Button>
                 </div>
               </Card>
             ))}
@@ -262,15 +306,16 @@ const ZiraHomes = () => {
                 </div>
               </div>
               <div className="mt-8">
-                <DemoBookingModal platform="Zira Homes">
-                  <Button 
-                    size="lg" 
-                    className="bg-brand-orange hover:bg-brand-orange-dark text-white px-8 py-3 text-lg font-semibold shadow-lg"
-                  >
-                    See Mobile Demo
+                <Button 
+                  size="lg" 
+                  className="bg-brand-orange hover:bg-brand-orange-dark text-white px-8 py-3 text-lg font-semibold shadow-lg"
+                  asChild
+                >
+                  <a href="#contact">
+                    Request for a Demo
                     <Smartphone className="ml-2 h-5 w-5" />
-                  </Button>
-                </DemoBookingModal>
+                  </a>
+                </Button>
               </div>
             </div>
             <div className="relative">
@@ -284,53 +329,10 @@ const ZiraHomes = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section id="contact" className="py-20 bg-gradient-to-r from-brand-navy to-brand-orange">
-        <div className="container mx-auto px-4 text-center">
-          <div className="max-w-3xl mx-auto text-white">
-            <h2 className="text-4xl font-bold mb-6">
-              Ready to Transform Your Property Management?
-            </h2>
-            <p className="text-xl mb-8 text-white/90">
-              Join property managers across Africa and the diaspora who are revolutionizing their operations with Zira Homes. 
-              Perfect for busy professionals managing rental properties remotely — get detailed insights, automate operations, 
-              and stay connected with your investments from anywhere in the world.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <Button 
-                size="lg" 
-                className="bg-white text-brand-navy hover:bg-white/90 px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
-                onClick={scrollToContact}
-              >
-                Get Started with Zira Homes
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <DemoBookingModal platform="Zira Homes">
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-2 border-white bg-white/10 text-white hover:bg-white/20 px-8 py-4 text-lg font-semibold backdrop-blur-sm transition-all"
-                >
-                  Schedule Live Demo
-                  <Calendar className="ml-2 h-5 w-5" />
-                </Button>
-              </DemoBookingModal>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center text-white/80">
-              <div className="flex items-center">
-                <Phone className="h-5 w-5 mr-2" />
-                <span>+254 757878023</span>
-              </div>
-              <div className="flex items-center">
-                <Mail className="h-5 w-5 mr-2" />
-                <span>info@ziratech.com</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <ContactZiraHomes />
 
       <Footer />
+      <OfferPopup currentPath="/zira-homes" />
     </div>
   );
 };
