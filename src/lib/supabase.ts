@@ -1,16 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-// For Lovable projects with native Supabase integration
+// Supabase configuration
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
 
 // Check if we have the required credentials
 if (!supabaseUrl || supabaseUrl === 'https://your-project.supabase.co') {
-  console.error('Supabase URL not found. Please ensure Supabase is properly connected to your Lovable project.')
+  console.error('Supabase URL not found. Please ensure VITE_SUPABASE_URL environment variable is configured.')
 }
 
 if (!supabaseAnonKey || supabaseAnonKey === 'your-anon-key') {
-  console.error('Supabase Anon Key not found. Please ensure Supabase is properly connected to your Lovable project.')
+  console.error('Supabase Anon Key not found. Please ensure VITE_SUPABASE_ANON_KEY environment variable is configured.')
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
