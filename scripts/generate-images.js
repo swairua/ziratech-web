@@ -8,9 +8,12 @@
  * Usage: node scripts/generate-images.js
  */
 
-const sharp = require('sharp');
-const fs = require('fs');
-const path = require('path');
+import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const sourceLogoPath = path.join(__dirname, '../public/lovable-uploads/c3459758-169f-4a51-bfc7-beb8ad362e87.png');
 const publicDir = path.join(__dirname, '../public');
